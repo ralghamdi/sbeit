@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="بنت السبيت">
+<meta name="theme-color" content="#0d5c43">
+<title>حساب بنت السبيت</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<link rel="icon" type="image/png" href="./icon-192.png">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♠️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;900&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --felt:#0d5c43;
+    --felt-dark:#083b2c;
+    --felt-line:#0a4d39;
+    --paper:#ffffff;
+    --ink:#1b1b1b;
+    --muted:#7a7f83;
+    --line:#e6e3db;
+    --red:#c62828;        /* الفريق الأول ♥ */
+    --red-soft:#fdeceb;
+    --spade:#242424;      /* الفريق الثاني ♠ */
+    --spade-soft:#ededed;
+    --gold:#c9a227;
+    --ok:#1e9e6a;
+    --amber:#e0a11b;
+    --danger:#d63a3a;
+    --shadow:0 6px 20px rgba(0,0,0,.14);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Tajawal',system-ui,sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(120% 90% at 50% -10%, #12724f 0%, var(--felt) 45%, var(--felt-dark) 100%) fixed;
+    height:100dvh;
+    overflow:hidden;
+    display:flex;flex-direction:column;align-items:center;
+    padding:calc(env(safe-area-inset-top) + 5px) 9px calc(env(safe-area-inset-bottom) + 7px);
+  }
+  .wrap{
+    width:100%;max-width:440px;flex:1;min-height:0;
+    display:flex;flex-direction:column;gap:7px;overflow-y:auto;
+  }
+
+  /* ===== Header ===== */
+  header{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:2px 2px 0;color:#fff;flex-shrink:0;
+  }
+  .brand{display:flex;align-items:center;gap:8px;min-width:0}
+  .brand-txt{min-width:0}
+  .brand .suits{font-size:20px;letter-spacing:-2px;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))}
+  .brand h1{font-family:'Cairo';font-weight:900;font-size:17px;margin:0;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .brand .mode{font-size:10px;opacity:.8;font-weight:500;white-space:nowrap}
+  .hbtns{display:flex;gap:5px;flex-shrink:0}
+  .icon-btn{
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);
+    color:#fff;border-radius:10px;padding:7px 9px;font-family:'Tajawal';font-weight:700;
+    font-size:13px;cursor:pointer;transition:.15s;line-height:1;
+  }
+  .icon-btn.accent{background:var(--gold);border-color:var(--gold);color:#3a2e05;font-weight:800}
+  .icon-btn:active{transform:scale(.94)}
+  .icon-btn:hover{background:rgba(255,255,255,.22)}
+  .icon-btn.accent:hover{background:#d8b02f}
+
+  /* ===== Result banner ===== */
+  #result{display:none;flex-shrink:0}
+  #result.show{display:block;animation:pop .3s ease}
+  @keyframes pop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+  .result-card{
+    background:linear-gradient(135deg,#fff 0%,#fff7e6 100%);
+    border:2px solid var(--gold);border-radius:14px;padding:10px 14px;text-align:center;
+    box-shadow:var(--shadow);
+  }
+  .result-card .crown{font-size:26px;line-height:1}
+  .result-card .lose{font-family:'Cairo';font-weight:900;font-size:18px;margin:2px 0 1px;color:var(--danger)}
+  .result-card .win{font-family:'Cairo';font-weight:700;font-size:14px;color:var(--ok)}
+  .result-card .why{color:var(--muted);font-size:12px;margin-top:3px}
+
+  /* ===== Notice toast ===== */
+  #notice{
+    position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 18px);transform:translateX(-50%);
+    background:var(--ink);color:#fff;padding:12px 18px;border-radius:14px;font-weight:700;font-size:14px;
+    box-shadow:var(--shadow);max-width:90vw;text-align:center;z-index:50;
+    opacity:0;pointer-events:none;transition:.25s;
+  }
+  #notice.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #notice.warn{background:#8a5a00}
+
+  /* ===== Scoreboard ===== */
+  .board{display:flex;flex-direction:column;gap:7px;flex-shrink:0}
+  .suit{font-size:16px;line-height:1}
+
+  /* teams legend */
+  .teams-legend{display:flex;gap:7px}
+  .tchip{
+    flex:1;min-width:0;display:flex;align-items:center;gap:7px;color:#fff;
+    background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);border-radius:11px;padding:6px 9px;
+  }
+  .tchip .tc-body{min-width:0}
+  .tchip .tc-name{
+    font-family:'Cairo';font-weight:800;font-size:13px;outline:none;border-radius:6px;padding:0 3px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .tchip .tc-name:focus{background:rgba(255,255,255,.18)}
+  .tchip .tc-members{font-size:10px;color:rgba(255,255,255,.68);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tchip.team0{border-inline-start:4px solid var(--red)}
+  .tchip.team1{border-inline-start:4px solid #cfcfcf}
+  .tchip.team0 .suit{color:#ff6b6b}
+  .tchip.team1 .suit{color:#e9e9e9}
+
+  /* player row: 1..4 by seat, right→left */
+  .players-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .pcard{
+    background:var(--paper);border-radius:12px;padding:7px 6px 8px;position:relative;overflow:hidden;
+    box-shadow:0 2px 8px rgba(0,0,0,.12);border-top:3px solid var(--line);min-width:0;
+  }
+  .pc-top{display:flex;align-items:center;gap:3px;margin-bottom:1px}
+  .pc-top .suit{font-size:11px}
+  .pcard .pname{
+    font-weight:700;font-size:11px;color:var(--muted);outline:none;border-radius:6px;padding:0 2px;
+    display:inline-block;min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .pcard .pname:focus{background:#f2f0ea;color:var(--ink)}
+  .pcard .score{
+    font-family:'Cairo';font-weight:900;font-size:clamp(22px,7vw,32px);line-height:1;margin:3px 0 6px;
+    letter-spacing:-1px;cursor:pointer;text-align:center;
+  }
+  .pcard.team0{border-top-color:var(--red)}
+  .pcard.team1{border-top-color:var(--spade)}
+  .pcard.team0 .score,.pcard.team0 .pc-top .suit{color:var(--red)}
+  .pcard.team1 .score,.pcard.team1 .pc-top .suit{color:var(--spade)}
+  .bar{height:6px;border-radius:99px;background:#eceae4;overflow:hidden}
+  .bar > i{display:block;height:100%;border-radius:99px;transition:width .35s ease,background .35s}
+  .pcard .dist{font-size:10px;color:var(--muted);margin-top:4px;font-weight:500;text-align:center}
+  .pcard.dead{outline:2px solid var(--danger)}
+  .pcard.dead::after{
+    content:"خسر";position:absolute;top:5px;left:5px;background:var(--danger);color:#fff;
+    font-size:9px;font-weight:800;padding:1px 5px;border-radius:99px;
+  }
+  /* الموزّع */
+  .pcard.dealer{box-shadow:0 0 0 2px var(--gold), 0 2px 10px rgba(0,0,0,.16)}
+  .pcard .deal-badge{position:absolute;top:3px;right:4px;font-size:12px;line-height:1}
+  .dealer-line{
+    text-align:center;color:#fff;font-family:'Cairo';font-weight:700;font-size:12px;
+    background:rgba(201,162,39,.16);border:1px solid rgba(201,162,39,.4);border-radius:10px;
+    padding:5px 9px;cursor:pointer;user-select:none;
+  }
+  .dealer-line b{color:var(--gold)}
+  .dealer-line .dl-hint{font-family:'Tajawal';font-weight:500;font-size:10px;color:rgba(255,255,255,.6)}
+
+  /* ===== Round entry ===== */
+  .panel{
+    background:var(--paper);border-radius:16px;padding:10px;box-shadow:var(--shadow);
+  }
+  .entry-panel{flex-shrink:0}
+  .entry-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .ri{border:1px solid var(--line);border-radius:11px;padding:6px 7px;min-width:0}
+  .ri-name{font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ri.t0{border-inline-start:4px solid var(--red)}
+  .ri.t1{border-inline-start:4px solid var(--spade)}
+  .ri-row{display:flex;gap:5px;align-items:stretch}
+  .ri-input{
+    flex:1;min-width:0;border:1.5px solid var(--line);border-radius:9px;padding:7px 4px;font-family:'Cairo';
+    font-weight:700;font-size:18px;text-align:center;color:var(--ink);outline:none;
+  }
+  .ri-input:focus{border-color:var(--gold)}
+  .ri-input.neg{color:var(--danger)}
+  .q5{
+    flex:0 0 auto;width:42px;border:1px solid var(--line);background:#faf9f6;border-radius:9px;
+    font-family:'Tajawal';font-weight:800;font-size:13px;color:var(--muted);cursor:pointer;transition:.12s;
+  }
+  .q5:active{transform:scale(.95)}
+  .q5.on{background:var(--danger);color:#fff;border-color:var(--danger)}
+
+  .sumline{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;
+    padding:6px 10px;border-radius:10px;background:#f7f6f2;font-size:12px;font-weight:700;
+  }
+  .chip{padding:3px 10px;border-radius:99px;font-size:12px;font-weight:800}
+  .chip.ok{background:#e3f6ee;color:var(--ok)}
+  .chip.bad{background:#fdeaea;color:var(--danger)}
+  .chip.neutral{background:#eee;color:var(--muted)}
+
+  .actions{display:flex;gap:6px;margin-top:8px}
+  .btn{
+    border:none;border-radius:11px;padding:12px 10px;font-family:'Cairo';font-weight:700;font-size:15px;
+    cursor:pointer;transition:.15s;
+  }
+  .btn:active{transform:scale(.98)}
+  #recordBtn{flex:2}
+  #kabootBtn{flex:1}
+  #clearBtn{flex:0 0 auto;padding-left:14px;padding-right:14px}
+  .btn-primary{background:var(--felt);color:#fff}
+  .btn-primary:hover{background:#0e6b4e}
+  .btn-ghost{background:#f2f0ea;color:var(--ink)}
+  .btn-ghost:hover{background:#e9e6de}
+  .btn-kaboot{background:linear-gradient(135deg,var(--gold),#a8851d);color:#fff}
+
+  /* kaboot picker (inside modal) */
+  #kabootPick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+  .kb{border:2px solid var(--line);border-radius:12px;padding:14px 8px;background:#fff;cursor:pointer;
+      font-family:'Cairo';font-weight:800;font-size:15px;text-align:center}
+  .kb.t0{border-color:var(--red);color:var(--red)}
+  .kb.t1{border-color:var(--spade);color:var(--spade)}
+  .kb small{display:block;font-family:'Tajawal';font-weight:500;font-size:10px;color:var(--muted);margin-top:4px}
+
+  /* ===== History (in modal) ===== */
+  #histList{margin-top:6px;display:flex;flex-direction:column;gap:6px;max-height:56vh;overflow-y:auto}
+  .hrow{
+    display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;
+    background:#f7f6f2;border-radius:10px;padding:8px 10px;font-size:13px;
+  }
+  .hrow .hn{width:24px;height:24px;border-radius:99px;background:var(--felt);color:#fff;font-weight:800;
+            font-size:11px;display:flex;align-items:center;justify-content:center}
+  .hrow .hv{display:flex;gap:6px;flex-wrap:wrap;font-weight:700}
+  .hrow .hv b{font-weight:700}
+  .hrow .hv .ht0{color:var(--red)}
+  .hrow .hv .ht1{color:var(--spade)}
+  .hrow .htag{font-size:11px;color:var(--gold);font-weight:800}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:14px}
+
+  .legend{color:rgba(255,255,255,.75);font-size:11px;text-align:center;margin-top:16px;line-height:1.7}
+  .legend b{color:#fff}
+
+  /* ===== Mode modal ===== */
+  .modal{
+    display:none;position:fixed;inset:0;z-index:60;
+    background:rgba(6,30,22,.6);backdrop-filter:blur(3px);
+    align-items:center;justify-content:center;padding:20px;
+  }
+  .modal.show{display:flex;animation:pop .2s ease}
+  .modal-card{
+    background:var(--paper);border-radius:20px;padding:20px;width:100%;max-width:360px;box-shadow:var(--shadow);
+  }
+  .modal-card h3{font-family:'Cairo';font-weight:900;font-size:19px;margin:0 0 2px}
+  .modal-card p{color:var(--muted);font-size:13px;margin:0 0 14px}
+  .mode-opt{
+    display:block;width:100%;text-align:right;border:2px solid var(--line);background:#fff;
+    border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer;transition:.15s;
+  }
+  .mode-opt:hover{border-color:var(--felt);background:#f4fbf8}
+  .mode-opt.tight:hover{border-color:var(--gold);background:#fdf9ec}
+  .mode-opt:active{transform:scale(.98)}
+  .mo-title{display:block;font-family:'Cairo';font-weight:800;font-size:17px;color:var(--ink)}
+  .mo-sub{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+  .mode-cancel{
+    width:100%;border:none;background:#f2f0ea;color:var(--muted);border-radius:12px;
+    padding:12px;font-family:'Tajawal';font-weight:700;font-size:14px;cursor:pointer;margin-top:2px;
+  }
+  .modal-tall{max-width:400px}
+  .info-text{color:var(--ink)!important;font-size:14px!important;line-height:1.9;margin:0 0 14px!important}
+  .info-text b{color:var(--felt)}
+
+  @media(max-height:660px){
+    .pcard .score{font-size:clamp(20px,6.5vw,28px)}
+    .board{gap:6px}
+    .wrap{gap:6px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <span class="suits">♠️♥️</span>
+      <div class="brand-txt">
+        <h1>بنت السبيت</h1>
+        <div class="mode" id="modeLabel">عادية — من 0</div>
+      </div>
+    </div>
+    <div class="hbtns">
+      <button class="icon-btn" id="undoBtn" title="تراجع">↩︎</button>
+      <button class="icon-btn" id="histBtn" title="السجل">🗒️</button>
+      <button class="icon-btn" id="infoBtn" title="القيم">؟</button>
+      <button class="icon-btn accent" id="newBtn">جديدة</button>
+    </div>
+  </header>
+
+  <div id="result"><div class="result-card">
+    <div class="crown">👑</div>
+    <div class="lose" id="loseText"></div>
+    <div class="win" id="winText"></div>
+    <div class="why" id="whyText"></div>
+  </div></div>
+
+  <div class="board" id="board"></div>
+
+  <div class="panel entry-panel">
+    <div class="entry-grid" id="entryGrid"></div>
+
+    <div class="sumline">
+      <span>مجموع الأوراق <small id="sumNote" style="color:var(--muted);font-weight:500;font-size:10px"></small></span>
+      <span id="sumChip" class="chip neutral">—</span>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="recordBtn">سجّل الدورة</button>
+      <button class="btn btn-kaboot" id="kabootBtn">كبوت</button>
+      <button class="btn btn-ghost" id="clearBtn">مسح</button>
+    </div>
+  </div>
+
+</div>
+
+<div id="modeModal" class="modal">
+  <div class="modal-card">
+    <h3>لعبة جديدة</h3>
+    <p>اختر نوع اللعبة:</p>
+    <button class="mode-opt" id="optNormal">
+      <span class="mo-title">عادية</span>
+      <span class="mo-sub">الكل يبدأ من 0 · أول واحد يوصل 152 يخسر فريقه</span>
+    </button>
+    <button class="mode-opt tight" id="optTight">
+      <span class="mo-title">مشدودة</span>
+      <span class="mo-sub">الكل يبدأ من 52 · أقصر وأسرع</span>
+    </button>
+    <button class="mode-cancel" id="optCancel">إلغاء</button>
+  </div>
+</div>
+
+<div id="confirmModal" class="modal">
+  <div class="modal-card">
+    <h3>تنبيه</h3>
+    <p id="cmMsg"></p>
+    <button class="mode-opt tight" id="cmYes"><span class="mo-title" id="cmYesLabel">تأكيد</span></button>
+    <button class="mode-cancel" id="cmNo">إلغاء</button>
+  </div>
+</div>
+
+<div id="inputModal" class="modal">
+  <div class="modal-card">
+    <h3 id="imTitle">تعديل</h3>
+    <input id="imInput" type="number" inputmode="numeric"
+      style="width:100%;border:1.5px solid var(--line);border-radius:12px;padding:12px;font-family:'Cairo';font-weight:700;font-size:22px;text-align:center;outline:none;margin-bottom:12px">
+    <button class="mode-opt" id="imSave"><span class="mo-title">حفظ</span></button>
+    <button class="mode-cancel" id="imCancel">إلغاء</button>
+  </div>
+</div>
+
+<div id="kabootModal" class="modal">
+  <div class="modal-card">
+    <h3>كبوت</h3>
+    <p>أي فريق حقّق الكبوت؟</p>
+    <div id="kabootPick"></div>
+    <button class="mode-cancel" id="kbCancel">إلغاء</button>
+  </div>
+</div>
+
+<div id="histModal" class="modal">
+  <div class="modal-card modal-tall">
+    <h3>سجل الدورات <span id="histCount" style="color:var(--muted);font-weight:500;font-size:13px"></span></h3>
+    <div id="histList"></div>
+    <button class="mode-cancel" id="histCancel" style="margin-top:12px">إغلاق</button>
+  </div>
+</div>
+
+<div id="infoModal" class="modal">
+  <div class="modal-card">
+    <h3>قيم الأوراق</h3>
+    <p class="info-text">
+      كل هاص = <b>1</b><br>
+      بنت السبيت = <b>13</b> (مدبلة <b>26</b>)<br>
+      عشرة الديمن = <b>10</b> (مدبلة <b>20</b>)<br><br>
+      إجماليات الدورة: <b>36 · 46 · 49 · 59</b><br>
+      أول لاعب يوصل <b>152</b> يخسر فريقه.<br>
+      الموزّع عند صاحب أعلى نقاط.
+    </p>
+    <button class="mode-cancel" id="infoCancel">إغلاق</button>
+  </div>
+</div>
+
+<div id="notice"></div>
+
+<script>
+"use strict";
+
+/* ============ ثوابت اللعبة ============ */
+const THRESHOLD = 152;
+const VALID_TOTALS = [36, 46, 49, 59];
+const SUITS = ['♥', '♠'];              // فريق 1 / فريق 2
+const KEY = 'bintelsbeit_state_v2';
+
+/* ============ التخزين (آمن، ما يوقف لو تعطّل) ============ */
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+function load(){ try{ const r = localStorage.getItem(KEY); return r ? JSON.parse(r) : null; }catch(e){ return null; } }
+
+/* ============ الحالة ============ */
+function freshState(start){
+  return {
+    start: start,
+    teams: [{name:'الفريق الأول'}, {name:'الفريق الثاني'}],
+    players: [
+      {name:'لاعب 1', team:0},
+      {name:'لاعب 2', team:1},
+      {name:'لاعب 3', team:0},
+      {name:'لاعب 4', team:1}
+    ],
+    history: [],   // {type:'normal'|'kaboot'|'adjust', deltas:[a,b,c,d], label}
+    initialDealer: 0,   // الموزّع قبل أي دورة (لاعب 1 افتراضياً)
+    finished: false,
+    result: null
+  };
+}
+
+let state = load() || freshState(0);
+if(state.initialDealer === undefined) state.initialDealer = 0;
+
+/* ============ حسابات ============ */
+function totals(){
+  const t = [state.start, state.start, state.start, state.start];
+  for(const r of state.history) for(let i=0;i<4;i++) t[i] += r.deltas[i];
+  return t;
+}
+
+// مجموع أوراق الدورة = مجموع القيم الموجبة فقط (0 و -5 = صفر أوراق)
+function cardSum(vals){
+  return vals.reduce((s,v)=> s + (v>0 ? v : 0), 0);
+}
+
+// فحص النهاية بعد أي دورة
+function evaluateEnd(){
+  const t = totals();
+  const cand = [0,1,2,3].filter(i => t[i] >= THRESHOLD);
+  if(cand.length === 0) return {finished:false};
+  const max = Math.max(...cand.map(i=>t[i]));
+  const top = cand.filter(i => t[i] === max);
+  const topTeams = [...new Set(top.map(i => state.players[i].team))];
+  if(topTeams.length === 1){
+    return {finished:true, losingTeam:topTeams[0], byPlayers:top, max};
+  }
+  return {finished:false, tie:true, max, topPlayers:top};
+}
+
+/* ============ الموزّع (الديلر) ============ */
+// الموزّع دائماً صاحب أعلى نقاط. عند التعادل: يبقى مع آخر موزّع إن كان من المتعادلين،
+// وإلا ينتقل لأقرب لاعب على يمينه مع عقارب الساعة (1←2←3←4←1).
+function dealerFor(t, prev){
+  const max = Math.max(...t);
+  const tied = [0,1,2,3].filter(i => t[i] === max);
+  if(tied.length === 1) return tied[0];
+  for(let step=0; step<4; step++){
+    const i = (prev + step) % 4;      // نبدأ من الموزّع السابق ثم مع عقارب الساعة
+    if(tied.includes(i)) return i;
+  }
+  return tied[0];
+}
+
+// الموزّع الحالي: نعيد تشغيل الدورات من الموزّع الأول لاشتقاق السلسلة
+function currentDealer(){
+  let prev = state.initialDealer ?? 0;
+  const t = [state.start, state.start, state.start, state.start];
+  for(const r of state.history){
+    for(let i=0;i<4;i++) t[i] += r.deltas[i];
+    prev = dealerFor(t, prev);
+  }
+  return prev;
+}
+
+/* ============ إجراءات ============ */
+function recordRound(deltas, type, label){
+  state.history.push({type, deltas, label});
+  const ev = evaluateEnd();
+  if(ev.finished){
+    state.finished = true;
+    const winTeam = 1 - ev.losingTeam;
+    const names = ev.byPlayers.map(i => state.players[i].name).join(' و ');
+    state.result = {
+      losing: ev.losingTeam,
+      winning: winTeam,
+      why: names + ' وصل ' + ev.max
+    };
+  } else if(ev.tie){
+    const names = ev.topPlayers.map(i => state.players[i].name).join(' و ');
+    toast('تعادل على القمة عند ' + ev.max + ' بين فريقين — اللعبة مستمرة، سجّلوا دورة ثانية', 'warn');
+  }
+  save();
+  render();
+}
+
+function undo(){
+  if(state.history.length === 0){ toast('ما فيه دورات للتراجع'); return; }
+  state.history.pop();
+  state.finished = false;
+  state.result = null;
+  save();
+  render();
+  toast('تم التراجع عن آخر دورة');
+}
+
+function newGame(){
+  document.getElementById('modeModal').classList.add('show');
+}
+function startGame(tight){
+  document.getElementById('modeModal').classList.remove('show');
+  const oldNames = {teams:state.teams.map(t=>t.name), players:state.players.map(p=>p.name)};
+  state = freshState(tight ? 52 : 0);
+  // نحتفظ بالأسماء إذا كانت معدّلة
+  state.teams.forEach((t,i)=> t.name = oldNames.teams[i]);
+  state.players.forEach((p,i)=> p.name = oldNames.players[i]);
+  save();
+  render();
+  clearInputs();
+  toast(tight ? 'لعبة مشدودة جديدة — الكل يبدأ من 52' : 'لعبة عادية جديدة — الكل يبدأ من 0');
+}
+
+/* تعديل يدوي لنقاط لاعب (تصحيح) */
+function editScore(i){
+  const t = totals();
+  askInput('النقاط الجديدة لـ ' + state.players[i].name, t[i], (val)=>{
+    const n = parseInt(val, 10);
+    if(isNaN(n)){ toast('قيمة غير صحيحة'); return; }
+    const deltas = [0,0,0,0];
+    deltas[i] = n - t[i];
+    recordRound(deltas, 'adjust', 'تصحيح: ' + state.players[i].name);
+  });
+}
+
+/* ============ واجهة الإدخال ============ */
+function readInputs(){
+  const out = [];
+  for(let i=0;i<4;i++){
+    const el = document.getElementById('in'+i);
+    const raw = el.value.trim();
+    out.push(raw === '' ? null : parseInt(raw, 10));
+  }
+  return out;
+}
+function clearInputs(){
+  for(let i=0;i<4;i++){
+    const el = document.getElementById('in'+i);
+    if(el){ el.value=''; el.classList.remove('neg'); }
+  }
+  document.querySelectorAll('.q5').forEach(b=>b.classList.remove('on'));
+  updateSum();
+}
+
+function updateSum(){
+  const vals = readInputs();
+  const allEmpty = vals.every(v => v === null);
+  const nums = vals.map(v => v === null ? 0 : v);
+  // علّم الخانات السالبة
+  for(let i=0;i<4;i++){
+    const el = document.getElementById('in'+i);
+    if(el) el.classList.toggle('neg', vals[i] !== null && vals[i] < 0);
+  }
+  const chip = document.getElementById('sumChip');
+  const noteEl = document.getElementById('sumNote');
+  // كم لاعب "ما أكل" (سالب) — للتوضيح فقط، غير محتسب في المجموع
+  const negCount = vals.filter(v => v !== null && v < 0).length;
+  noteEl.textContent = negCount > 0
+    ? '‎-5‎ عقوبة، غير محسوبة في مجموع الأوراق'
+    : '';
+  if(allEmpty){ chip.className='chip neutral'; chip.textContent='—'; return; }
+  const cs = cardSum(nums);
+  if(VALID_TOTALS.includes(cs)){
+    chip.className='chip ok'; chip.textContent = cs + ' ✓';
+  } else {
+    chip.className='chip bad'; chip.textContent = cs + ' ✕ (36/46/49/59)';
+  }
+}
+
+function onRecord(){
+  if(state.finished){ toast('اللعبة انتهت — ابدأ لعبة جديدة'); return; }
+  const vals = readInputs();
+  if(vals.every(v => v === null)){ toast('أدخل نقاط الدورة أولاً'); return; }
+  const nums = vals.map(v => v === null ? 0 : v);
+  const cs = cardSum(nums);
+  if(!VALID_TOTALS.includes(cs)){
+    askConfirm(
+      'مجموع أوراق الدورة = ' + cs + '، وهذا ما يطابق الإجماليات المعروفة (36 / 46 / 49 / 59). يمكن فيه عدّ ناقص. تبي تسجّلها على أي حال؟',
+      'سجّلها على أي حال',
+      ()=>{ recordRound(nums, 'normal', ''); clearInputs(); }
+    );
+    return;
+  }
+  recordRound(nums, 'normal', '');
+  clearInputs();
+}
+
+/* كبوت (نافذة منبثقة) */
+function showKaboot(){
+  if(state.finished){ toast('اللعبة انتهت — ابدأ لعبة جديدة'); return; }
+  const box = document.getElementById('kabootPick');
+  box.innerHTML =
+    '<div class="kb t0" data-k="0">'+esc(state.teams[0].name)+'<small>كبت: لاعبوه ‎-10‎ · الفريق الثاني ‎+26‎</small></div>' +
+    '<div class="kb t1" data-k="1">'+esc(state.teams[1].name)+'<small>كبت: لاعبوه ‎-10‎ · الفريق الأول ‎+26‎</small></div>';
+  box.querySelectorAll('.kb').forEach(el=>{
+    el.onclick = ()=> applyKaboot(parseInt(el.dataset.k,10));
+  });
+  document.getElementById('kabootModal').classList.add('show');
+}
+function hideKaboot(){ document.getElementById('kabootModal').classList.remove('show'); }
+function applyKaboot(k){
+  const deltas = state.players.map(p => p.team === k ? -10 : 26);
+  recordRound(deltas, 'kaboot', 'كبوت — ' + state.teams[k].name);
+  hideKaboot();
+  clearInputs();
+  toast('تم تسجيل الكبوت لصالح ' + state.teams[k].name);
+}
+
+/* ============ الرسم ============ */
+function barColor(pct){
+  if(pct >= 92) return 'var(--danger)';
+  if(pct >= 75) return 'var(--amber)';
+  return 'var(--ok)';
+}
+
+function render(){
+  // الوضع
+  document.getElementById('modeLabel').textContent =
+    state.start === 52 ? 'الوضع المشدود — يبدأ من 52' : 'الوضع العادي — يبدأ من 0';
+
+  const t = totals();
+  const dealer = currentDealer();
+  const noRounds = state.history.length === 0;
+
+  // اللوحة: شريط الفرق + صف اللاعبين بالترتيب 1..4 (يمين ← يسار) + سطر الموزّع
+  const board = document.getElementById('board');
+  board.innerHTML =
+    '<div class="teams-legend">' + teamChip(0) + teamChip(1) + '</div>' +
+    '<div class="players-row">' + [0,1,2,3].map(i => playerCard(i, t[i], dealer)).join('') + '</div>' +
+    '<div class="dealer-line" id="dealerLine">🃏 الموزّع: <b>' + esc(state.players[dealer].name) + '</b>' +
+      (noRounds ? ' <span class="dl-hint">(اضغط لتغيير الموزّع الأول)</span>' : '') +
+    '</div>';
+
+  // النتيجة
+  const res = document.getElementById('result');
+  if(state.result){
+    res.classList.add('show');
+    document.getElementById('loseText').textContent = 'خسر ' + state.teams[state.result.losing].name;
+    document.getElementById('winText').textContent = '🏆 فاز ' + state.teams[state.result.winning].name;
+    document.getElementById('whyText').textContent = state.result.why;
+  } else {
+    res.classList.remove('show');
+  }
+
+  // السجل
+  renderHistory();
+  updateSum();
+  attachEditable();
+}
+
+function teamChip(tm){
+  const members = [0,1,2,3].filter(i => state.players[i].team === tm)
+                           .map(i => state.players[i].name).join(' و ');
+  return '<div class="tchip team'+tm+'">' +
+    '<span class="suit">'+SUITS[tm]+'</span>' +
+    '<div class="tc-body">' +
+      '<div class="tc-name" contenteditable="true" data-team="'+tm+'">'+esc(state.teams[tm].name)+'</div>' +
+      '<div class="tc-members">'+esc(members)+'</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function playerCard(i, score, dealer){
+  const tm = state.players[i].team;
+  const pct = Math.max(0, Math.min(100, (score / THRESHOLD) * 100));
+  const dead = state.result && evaluateIsDead(i);
+  const isDealer = i === dealer;
+  const remaining = THRESHOLD - score;
+  const distTxt = score >= THRESHOLD ? 'تجاوز 152' : 'باقي ' + remaining;
+  return '<div class="pcard team'+tm+(dead?' dead':'')+(isDealer?' dealer':'')+'">' +
+    (isDealer ? '<span class="deal-badge">🃏</span>' : '') +
+    '<div class="pc-top">' +
+      '<span class="suit">'+SUITS[tm]+'</span>' +
+      '<span class="pname" contenteditable="true" data-player="'+i+'">'+esc(state.players[i].name)+'</span>' +
+    '</div>' +
+    '<div class="score" data-edit="'+i+'">'+score+'</div>' +
+    '<div class="bar"><i style="width:'+pct+'%;background:'+barColor(pct)+'"></i></div>' +
+    '<div class="dist">'+distTxt+'</div>' +
+  '</div>';
+}
+
+// أي اللاعبين تسبّب بالخسارة (للتظليل)
+function evaluateIsDead(i){
+  const t = totals();
+  if(!state.result) return false;
+  if(state.players[i].team !== state.result.losing) return false;
+  const teamScores = [0,1,2,3].filter(j=>state.players[j].team===state.result.losing).map(j=>t[j]);
+  return t[i] >= THRESHOLD && t[i] === Math.max(...teamScores);
+}
+function evaluateEndDeadSet(){ /* placeholder, dead handled per-card */ }
+
+function renderHistory(){
+  const list = document.getElementById('histList');
+  const count = state.history.length;
+  document.getElementById('histCount').textContent = count ? '('+count+')' : '';
+  if(count === 0){
+    list.innerHTML = '<div class="empty">ما فيه دورات مسجّلة بعد</div>';
+    return;
+  }
+  let html = '';
+  for(let k = count-1; k >= 0; k--){
+    const r = state.history[k];
+    const vals = r.deltas.map((d,i)=> '<b class="ht'+state.players[i].team+'">'+fmt(d)+'</b>').join(' · ');
+    const tag = r.label ? '<span class="htag">'+esc(r.label)+'</span>' : '';
+    html += '<div class="hrow">' +
+      '<span class="hn">'+(k+1)+'</span>' +
+      '<span class="hv">'+vals+'</span>' +
+      tag +
+    '</div>';
+  }
+  list.innerHTML = html;
+}
+
+/* ============ أدوات ============ */
+function fmt(n){ return n > 0 ? '+'+n : ''+n; }
+function esc(s){ return (s+'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+let noticeTimer;
+function toast(msg, kind){
+  const el = document.getElementById('notice');
+  el.textContent = msg;
+  el.className = 'show' + (kind==='warn' ? ' warn' : '');
+  clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(()=> el.className = '', 2600);
+}
+
+/* حفظ الأسماء عند التعديل */
+function attachEditable(){
+  document.querySelectorAll('[data-player]').forEach(el=>{
+    el.onblur = ()=>{
+      const i = +el.dataset.player;
+      state.players[i].name = el.textContent.trim() || state.players[i].name;
+      save(); syncEntryLabels(); render();
+    };
+    el.onkeydown = e=>{ if(e.key==='Enter'){ e.preventDefault(); el.blur(); } };
+  });
+  document.querySelectorAll('[data-team]').forEach(el=>{
+    el.onblur = ()=>{
+      const i = +el.dataset.team;
+      state.teams[i].name = el.textContent.trim() || state.teams[i].name;
+      save();
+    };
+    el.onkeydown = e=>{ if(e.key==='Enter'){ e.preventDefault(); el.blur(); } };
+  });
+  document.querySelectorAll('[data-edit]').forEach(el=>{
+    el.onclick = ()=> editScore(+el.dataset.edit);
+  });
+  const dl = document.getElementById('dealerLine');
+  if(dl) dl.onclick = ()=>{
+    if(state.history.length === 0){
+      state.initialDealer = (state.initialDealer + 1) % 4;   // 1←2←3←4←1
+      save(); render();
+    } else {
+      toast('الموزّع يتحدد تلقائياً حسب صاحب أعلى نقاط');
+    }
+  };
+}
+
+/* بناء خانات الإدخال (ثابتة، ما تُمسح عند إعادة الرسم) */
+function buildEntry(){
+  const grid = document.getElementById('entryGrid');
+  grid.innerHTML = '';
+  for(let i=0;i<4;i++){
+    const tm = state.players[i].team;
+    const cell = document.createElement('div');
+    cell.className = 'ri t'+tm;
+    cell.innerHTML =
+      '<span class="ri-name" id="lbl'+i+'">'+esc(state.players[i].name)+'</span>' +
+      '<div class="ri-row">' +
+        '<input class="ri-input" id="in'+i+'" type="text" inputmode="numeric" placeholder="0">' +
+        '<button class="q5" data-p="'+i+'">‎-5‎</button>' +
+      '</div>';
+    grid.appendChild(cell);
+  }
+  // ربط الأحداث: الكتابة تقبل أرقام فقط (بدون سالب). السالب -5 من الزر فقط.
+  for(let i=0;i<4;i++){
+    const inp = document.getElementById('in'+i);
+    inp.addEventListener('input', ()=>{
+      inp.value = inp.value.replace(/[^\d]/g,'');   // أرقام موجبة أو 0 فقط
+      document.querySelector('.q5[data-p="'+i+'"]').classList.remove('on');
+      updateSum();
+    });
+  }
+  // زر -5 هو المصدر الوحيد للقيمة السالبة
+  document.querySelectorAll('.q5').forEach(btn=>{
+    btn.onclick = ()=>{
+      const p = btn.dataset.p;
+      const inp = document.getElementById('in'+p);
+      if(inp.value === '-5'){        // ضغطة ثانية = إلغاء
+        inp.value = '';
+        btn.classList.remove('on');
+      } else {
+        inp.value = '-5';
+        btn.classList.add('on');
+      }
+      updateSum();
+    };
+  });
+}
+function syncEntryLabels(){
+  for(let i=0;i<4;i++){
+    const lbl = document.getElementById('lbl'+i);
+    if(lbl) lbl.textContent = state.players[i].name;
+  }
+}
+
+/* ============ نوافذ داخل التطبيق (بديل confirm/prompt) ============ */
+let _confirmCb = null;
+function askConfirm(msg, yesLabel, cb){
+  document.getElementById('cmMsg').textContent = msg;
+  document.getElementById('cmYesLabel').textContent = yesLabel || 'تأكيد';
+  _confirmCb = cb;
+  document.getElementById('confirmModal').classList.add('show');
+}
+let _inputCb = null;
+function askInput(title, current, cb){
+  document.getElementById('imTitle').textContent = title;
+  const inp = document.getElementById('imInput');
+  inp.value = current;
+  _inputCb = cb;
+  document.getElementById('inputModal').classList.add('show');
+  setTimeout(()=>{ inp.focus(); inp.select(); }, 50);
+}
+
+/* ============ ربط الأزرار ============ */
+document.getElementById('recordBtn').onclick = onRecord;
+document.getElementById('kabootBtn').onclick = showKaboot;
+document.getElementById('clearBtn').onclick = clearInputs;
+document.getElementById('undoBtn').onclick = undo;
+document.getElementById('newBtn').onclick = newGame;
+document.getElementById('optNormal').onclick = ()=> startGame(false);
+document.getElementById('optTight').onclick = ()=> startGame(true);
+document.getElementById('optCancel').onclick = ()=> document.getElementById('modeModal').classList.remove('show');
+document.getElementById('modeModal').onclick = (e)=>{ if(e.target.id==='modeModal') document.getElementById('modeModal').classList.remove('show'); };
+
+// confirm modal
+document.getElementById('cmYes').onclick = ()=>{
+  document.getElementById('confirmModal').classList.remove('show');
+  const cb = _confirmCb; _confirmCb = null; if(cb) cb();
+};
+document.getElementById('cmNo').onclick = ()=>{ document.getElementById('confirmModal').classList.remove('show'); _confirmCb = null; };
+document.getElementById('confirmModal').onclick = (e)=>{ if(e.target.id==='confirmModal'){ document.getElementById('confirmModal').classList.remove('show'); _confirmCb=null; } };
+
+// input modal
+document.getElementById('imSave').onclick = ()=>{
+  document.getElementById('inputModal').classList.remove('show');
+  const cb = _inputCb; _inputCb = null; if(cb) cb(document.getElementById('imInput').value);
+};
+document.getElementById('imCancel').onclick = ()=>{ document.getElementById('inputModal').classList.remove('show'); _inputCb = null; };
+document.getElementById('inputModal').onclick = (e)=>{ if(e.target.id==='inputModal'){ document.getElementById('inputModal').classList.remove('show'); _inputCb=null; } };
+document.getElementById('imInput').onkeydown = (e)=>{ if(e.key==='Enter') document.getElementById('imSave').click(); };
+
+// kaboot / history / info modals
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+document.getElementById('kbCancel').onclick = ()=> closeModal('kabootModal');
+document.getElementById('kabootModal').onclick = (e)=>{ if(e.target.id==='kabootModal') closeModal('kabootModal'); };
+document.getElementById('histBtn').onclick = ()=>{ renderHistory(); document.getElementById('histModal').classList.add('show'); };
+document.getElementById('histCancel').onclick = ()=> closeModal('histModal');
+document.getElementById('histModal').onclick = (e)=>{ if(e.target.id==='histModal') closeModal('histModal'); };
+document.getElementById('infoBtn').onclick = ()=> document.getElementById('infoModal').classList.add('show');
+document.getElementById('infoCancel').onclick = ()=> closeModal('infoModal');
+document.getElementById('infoModal').onclick = (e)=>{ if(e.target.id==='infoModal') closeModal('infoModal'); };
+
+/* ============ تشغيل ============ */
+buildEntry();
+render();
+
+/* تسجيل الـService Worker (للعمل بدون إنترنت والتثبيت كتطبيق) */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
