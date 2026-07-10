@@ -16,6 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;900&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   :root{
     --felt:#0d5c43;
@@ -303,9 +304,79 @@
     .board{gap:6px}
     .wrap{gap:6px}
   }
+  /* ===== Home screen ===== */
+  .home{
+    position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;padding:22px;
+    background:radial-gradient(120% 90% at 50% -10%, #12724f 0%, var(--felt) 45%, var(--felt-dark) 100%);
+  }
+  .home.show{display:flex}
+  .home-card{width:100%;max-width:380px;text-align:center;color:#fff}
+  .home-logo{font-size:42px;letter-spacing:-6px}
+  .home-title{font-family:'Cairo';font-weight:900;font-size:30px;margin:8px 0 2px}
+  .home-sub{color:rgba(255,255,255,.8);font-size:13px;margin:0 0 24px}
+  .home-btn{
+    width:100%;border:1px solid rgba(255,255,255,.22);border-radius:14px;padding:15px;
+    font-family:'Cairo';font-weight:800;font-size:17px;cursor:pointer;margin-bottom:10px;
+    background:rgba(255,255,255,.13);color:#fff;transition:.12s;
+  }
+  .home-btn.primary{background:var(--gold);color:#3a2e05;border-color:var(--gold)}
+  .home-btn.ghost{background:transparent}
+  .home-btn:active{transform:scale(.98)}
+  .join-box{margin:2px 0 10px;display:flex;flex-direction:column;gap:8px}
+  .join-input{
+    width:100%;border:2px solid rgba(255,255,255,.4);background:rgba(255,255,255,.1);color:#fff;
+    border-radius:12px;padding:14px;font-family:'Cairo';font-weight:800;font-size:24px;text-align:center;
+    letter-spacing:8px;outline:none;text-transform:uppercase;
+  }
+  .join-input::placeholder{color:rgba(255,255,255,.5);font-size:14px;letter-spacing:normal;font-weight:500}
+  .home-note{margin-top:12px;font-size:13px;color:#ffe08a;font-weight:700;min-height:18px}
+
+  /* ===== Room bar ===== */
+  .room-bar{
+    display:none;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;
+    background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:6px 9px;color:#fff;
+  }
+  .rb-left,.rb-right{display:flex;align-items:center;gap:6px;min-width:0}
+  .rb-code{font-family:'Cairo';font-weight:900;font-size:18px;letter-spacing:2px;color:var(--gold)}
+  .rb-btn{
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:8px;
+    padding:5px 9px;font-family:'Tajawal';font-weight:700;font-size:12px;cursor:pointer;
+  }
+  .rb-btn:active{transform:scale(.96)}
+  .rb-exit{background:rgba(214,58,58,.28);border-color:rgba(214,58,58,.5)}
+  .rb-status{font-size:11px;font-weight:800;white-space:nowrap}
+  .rb-status.ok{color:#8ff0c0}
+  .rb-status.bad{color:#ff9b9b}
+  .rb-count{font-size:12px;color:rgba(255,255,255,.85);font-weight:700;white-space:nowrap}
+
+  /* ===== Guest / room view states ===== */
+  body.inroom #newBtn{display:none}
+  body.guest .entry-panel{display:none}
+  body.guest #undoBtn,body.guest #newBtn{display:none}
+  body.guest .pn-edit{display:none}
+  body.guest .pcard .pname{cursor:default;background:transparent;border-color:transparent;padding:2px 4px}
+  body.guest .dealer-line{cursor:default}
+  body.guest .dealer-line .dl-hint{display:none}
 </style>
 </head>
 <body>
+
+<div id="home" class="home">
+  <div class="home-card">
+    <div class="home-logo">♠️♥️</div>
+    <h1 class="home-title">بنت السبيت</h1>
+    <p class="home-sub">حاسبة نقاط — العبوا سوا والنتيجة مباشرة</p>
+    <button class="home-btn primary" id="homeCreate">➕ إنشاء غرفة</button>
+    <button class="home-btn" id="homeJoin">🔑 الدخول إلى غرفة</button>
+    <div id="joinBox" class="join-box" style="display:none">
+      <input id="joinCode" class="join-input" maxlength="4" placeholder="اكتب الرمز (4 خانات)" inputmode="text" autocapitalize="characters" autocomplete="off">
+      <button class="home-btn primary" id="joinGo">دخول</button>
+    </div>
+    <button class="home-btn ghost" id="homeLocal">📴 حساب محلي (بدون غرفة)</button>
+    <div class="home-note" id="homeNote"></div>
+  </div>
+</div>
+
 <div class="wrap">
 
   <header>
@@ -323,6 +394,19 @@
     </div>
   </header>
 
+  <div id="roomBar" class="room-bar">
+    <div class="rb-left">
+      <span class="rb-code" id="rbCode">----</span>
+      <button class="rb-btn" id="rbShare">مشاركة</button>
+      <button class="rb-btn" id="rbCopy">نسخ</button>
+    </div>
+    <div class="rb-right">
+      <span class="rb-status ok" id="rbStatus">🟢 مباشر</span>
+      <span class="rb-count" id="rbCount">👤 1</span>
+      <button class="rb-btn rb-exit" id="rbExit">خروج</button>
+    </div>
+  </div>
+
   <div class="top">
 
   <div id="result"><div class="result-card">
@@ -330,6 +414,8 @@
     <div class="lose" id="loseText"></div>
     <div class="win" id="winText"></div>
     <div class="why" id="whyText"></div>
+    <button id="resultOk" class="btn btn-primary" style="display:none;margin-top:10px;width:100%">إنهاء اللعبة والخروج</button>
+    <div id="resultWait" style="display:none;margin-top:8px;color:var(--muted);font-size:13px;font-weight:700">بانتظار المضيف لإنهاء اللعبة…</div>
   </div></div>
 
   <div class="board" id="board"></div>
@@ -447,7 +533,13 @@ const KEY = 'bintelsbeit_state_v2';
 const NAME_LIST = ['عبدالله','أبو أحمد','العسكر','القعود','أبو سالم','فهد','أبو غلا','رائد','يوسف','حسام','أبو فيصل','معتز','أبو نورة','أبو جود','أبو منيرة','الزوم'];
 
 /* ============ التخزين (آمن، ما يوقف لو تعطّل) ============ */
-function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+function save(){
+  if(typeof RM !== 'undefined' && RM){
+    if(RM.role === 'host'){ mirrorLocal(); pushState(); }
+    return;                       // الضيف لا يكتب
+  }
+  try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+}
 function load(){ try{ const r = localStorage.getItem(KEY); return r ? JSON.parse(r) : null; }catch(e){ return null; } }
 
 /* ============ الحالة ============ */
@@ -545,6 +637,7 @@ function recordRound(deltas, type, label){
 }
 
 function undo(){
+  if(viewer()) return;
   if(state.history.length === 0){ toast('ما فيه دورات للتراجع'); return; }
   state.history.pop();
   state.finished = false;
@@ -555,9 +648,11 @@ function undo(){
 }
 
 function newGame(){
+  if(viewer()) return;
   document.getElementById('modeModal').classList.add('show');
 }
 function startGame(tight){
+  if(viewer()) return;
   document.getElementById('modeModal').classList.remove('show');
   const oldNames = {teams:state.teams.map(t=>t.name), players:state.players.map(p=>p.name)};
   state = freshState(tight ? 52 : 0);
@@ -572,6 +667,7 @@ function startGame(tight){
 
 /* تعديل يدوي لنقاط لاعب (تصحيح) */
 function editScore(i){
+  if(viewer()) return;
   const t = totals();
   askInput('النقاط الجديدة لـ ' + state.players[i].name, t[i], (val)=>{
     const n = parseInt(val, 10);
@@ -584,6 +680,7 @@ function editScore(i){
 
 /* تغيير اسم لاعب: قائمة أسماء جاهزة + خيار كتابة */
 function renamePlayer(i){
+  if(viewer()) return;
   askName(state.players[i].name, (name)=>{
     state.players[i].name = name;
     save(); render();
@@ -667,6 +764,7 @@ function updateSum(){
 }
 
 function onRecord(){
+  if(viewer()) return;
   if(state.finished){ toast('اللعبة انتهت — ابدأ لعبة جديدة'); return; }
   const vals = readInputs();
   if(vals.every(v => v === null)){ toast('أدخل نقاط الدورة أولاً'); return; }
@@ -686,6 +784,7 @@ function onRecord(){
 
 /* كبوت (نافذة منبثقة) */
 function showKaboot(){
+  if(viewer()) return;
   if(state.finished){ toast('اللعبة انتهت — ابدأ لعبة جديدة'); return; }
   const box = document.getElementById('kabootPick');
   box.innerHTML =
@@ -738,6 +837,15 @@ function render(){
     document.getElementById('whyText').textContent = state.result.why;
   } else {
     res.classList.remove('show');
+  }
+  // زر إنهاء اللعبة (المضيف في غرفة) / انتظار (الضيف)
+  const okBtn = document.getElementById('resultOk');
+  const waitEl = document.getElementById('resultWait');
+  if(okBtn && waitEl){
+    const inRoom = (typeof RM !== 'undefined' && RM);
+    if(state.result && inRoom && RM.role === 'host'){ okBtn.style.display='block'; waitEl.style.display='none'; }
+    else if(state.result && inRoom && RM.role === 'guest'){ okBtn.style.display='none'; waitEl.style.display='block'; }
+    else { okBtn.style.display='none'; waitEl.style.display='none'; }
   }
 
   // السجل
@@ -835,6 +943,7 @@ function attachEditable(){
   });
   const dl = document.getElementById('dealerLine');
   if(dl) dl.onclick = ()=>{
+    if(viewer()) return;
     if(state.history.length === 0){
       state.initialDealer = (state.initialDealer + 1) % 4;   // 1←2←3←4←1
       save(); render();
@@ -910,16 +1019,259 @@ function askInput(title, current, cb, type){
   setTimeout(()=>{ inp.focus(); inp.select(); }, 50);
 }
 
+/* ============ الغرف (Supabase Realtime) ============ */
+const SB_URL = 'https://ntytvgtkckotpoirvpoc.supabase.co';
+const SB_KEY = 'sb_publishable_xy6WD1QAybOz9_a_t0c75g_y39-wFpN';
+const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // بدون 0 O 1 I L
+let sb = null, RM = null, _statusTimer = null, _pendingCreate = false;
+
+function sbClient(){
+  if(sb) return sb;
+  if(!window.supabase || !window.supabase.createClient) return null;
+  try{ sb = window.supabase.createClient(SB_URL, SB_KEY); }catch(e){ sb = null; }
+  return sb;
+}
+function deviceId(){
+  let id = null;
+  try{ id = localStorage.getItem('sbeit_device'); }catch(e){}
+  if(!id){
+    id = 'dev_' + ((window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+                    : (Math.random().toString(36).slice(2) + Date.now().toString(36)));
+    try{ localStorage.setItem('sbeit_device', id); }catch(e){}
+  }
+  return id;
+}
+function genCode(){ let c=''; for(let i=0;i<4;i++) c += CODE_ALPHABET[Math.floor(Math.random()*CODE_ALPHABET.length)]; return c; }
+function viewer(){ return !!(RM && RM.role === 'guest'); }
+function nowISO(){ return new Date().toISOString(); }
+function mirrorLocal(){ if(!RM) return; try{ localStorage.setItem('sbeit_room_'+RM.code, JSON.stringify(state)); }catch(e){} }
+function cleanState(s){ const c = JSON.parse(JSON.stringify(s)); delete c.__ended; return c; }
+
+/* دفع الحالة (المضيف فقط) */
+async function pushState(){
+  if(!RM || RM.role !== 'host') return;
+  const c = sbClient(); if(!c) return;
+  try{
+    const { data, error } = await c.from('sbeit_rooms')
+      .update({ state: state, updated_at: nowISO() }).eq('code', RM.code).select();
+    if(error){ RM.pendingPush = true; setStatus(false); return; }
+    if(!data || data.length === 0){ roomEnded('idle'); return; }
+    RM.pendingPush = false; setStatus(true);
+  }catch(e){ RM.pendingPush = true; setStatus(false); }
+}
+
+/* إنشاء غرفة */
+async function createRoom(tight){
+  const c = sbClient();
+  if(!c || !navigator.onLine){ homeNote('يلزم اتصال بالإنترنت لإنشاء غرفة'); return; }
+  homeNote('جاري إنشاء الغرفة…');
+  const fresh = freshState(tight ? 52 : 0);
+  fresh.__ended = false;
+  let created = null;
+  for(let attempt=0; attempt<6 && !created; attempt++){
+    const code = genCode();
+    const { data, error } = await c.from('sbeit_rooms')
+      .insert({ code, state: fresh, host_id: deviceId(), host_last_seen: nowISO(), updated_at: nowISO() })
+      .select().maybeSingle();
+    if(!error && data){ created = data; break; }
+    if(error && error.code !== '23505'){ homeNote('تعذّر إنشاء الغرفة، حاول ثانية'); return; }
+  }
+  if(!created){ homeNote('تعذّر توليد رمز، حاول ثانية'); return; }
+  state = fresh;
+  RM = { code: created.code, role:'host', pendingPush:false, hostLastSeen: created.host_last_seen };
+  enterRoom(); startHeartbeat();
+}
+
+/* الدخول لغرفة */
+async function joinRoom(codeRaw){
+  const code = (codeRaw||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);
+  if(code.length !== 4){ homeNote('الرمز 4 خانات'); return; }
+  const c = sbClient();
+  if(!c || !navigator.onLine){ homeNote('يلزم اتصال بالإنترنت للدخول'); return; }
+  homeNote('جاري الدخول…');
+  let res;
+  try{ res = await c.from('sbeit_rooms').select('*').eq('code', code).maybeSingle(); }
+  catch(e){ homeNote('تعذّر الاتصال، حاول ثانية'); return; }
+  if(res.error){ homeNote('تعذّر الاتصال، حاول ثانية'); return; }
+  if(!res.data){ homeNote('الغرفة غير موجودة أو انتهت'); return; }
+  const row = res.data;
+  const isHost = row.host_id === deviceId();
+  state = row.state || freshState(0);
+  if(state.initialDealer === undefined) state.initialDealer = 0;
+  if(state.__ended){ homeNote('الغرفة انتهت'); return; }
+  RM = { code, role: isHost ? 'host' : 'guest', pendingPush:false, hostLastSeen: row.host_last_seen };
+  enterRoom();
+  if(isHost) startHeartbeat();
+}
+
+/* الاشتراك اللحظي */
+function subscribe(){
+  const c = sbClient(); if(!c || !RM) return;
+  const ch = c.channel('room_'+RM.code, { config:{ presence:{ key: deviceId() } } })
+    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'sbeit_rooms', filter:'code=eq.'+RM.code },
+        (p)=> onRemote(p.new))
+    .on('presence', { event:'sync' }, ()=> updateCount())
+    .subscribe(async (status)=>{
+      if(status === 'SUBSCRIBED'){ try{ await ch.track({ id: deviceId(), role: RM.role }); }catch(e){} }
+    });
+  RM.channel = ch;
+}
+function onRemote(row){
+  if(!RM || !row) return;
+  const ns = row.state;
+  if(ns && ns.__ended){ roomEnded('ended'); return; }
+  RM.hostLastSeen = row.host_last_seen || RM.hostLastSeen;
+  if(RM.role === 'guest'){
+    const j = JSON.stringify(ns);
+    if(j === RM._lastJSON) return;     // تحديث نبضة فقط (بدون تغيّر) — لا نعيد الرسم
+    RM._lastJSON = j;
+    state = ns; if(state.initialDealer === undefined) state.initialDealer = 0;
+    render();
+  }
+}
+function updateCount(){
+  if(!RM || !RM.channel) return;
+  let n = 1;
+  try{ n = Object.keys(RM.channel.presenceState()).length || 1; }catch(e){}
+  RM.count = n;
+  const el = document.getElementById('rbCount'); if(el) el.textContent = '👤 ' + n;
+}
+
+/* نبضة المضيف كل 12ث */
+function startHeartbeat(){
+  stopHeartbeat();
+  const beat = async ()=>{
+    if(!RM || RM.role !== 'host') return;
+    const c = sbClient(); if(!c) return;
+    try{
+      const { data, error } = await c.from('sbeit_rooms')
+        .update({ host_last_seen: nowISO(), updated_at: nowISO() }).eq('code', RM.code).select();
+      if(error){ RM.pendingPush = true; setStatus(false); return; }
+      if(!data || data.length === 0){ roomEnded('idle'); return; }
+      setStatus(true);
+      if(RM.pendingPush) pushState();
+    }catch(e){ setStatus(false); }
+  };
+  RM.hbTimer = setInterval(beat, 12000); beat();
+}
+function stopHeartbeat(){ if(RM && RM.hbTimer){ clearInterval(RM.hbTimer); RM.hbTimer = null; } }
+
+/* مؤشر الحالة */
+function setStatus(ok){
+  const el = document.getElementById('rbStatus'); if(!el || !RM || RM.role !== 'host') return;
+  el.textContent = ok ? '🟢 متصل' : '🔴 غير متصل — يعاد الرفع';
+  el.className = 'rb-status ' + (ok ? 'ok' : 'bad');
+}
+function tickStatus(){
+  if(!RM){ return; }
+  if(RM.role === 'guest'){
+    const last = RM.hostLastSeen ? new Date(RM.hostLastSeen).getTime() : 0;
+    const stale = (Date.now() - last) > 30000;
+    const el = document.getElementById('rbStatus');
+    if(el){ el.textContent = stale ? '🔴 المضيف غير متصل' : '🟢 مباشر'; el.className = 'rb-status ' + (stale ? 'bad' : 'ok'); }
+  }
+  updateCount();
+}
+
+/* دخول واجهة الغرفة */
+function enterRoom(){
+  document.body.classList.add('inroom');
+  document.body.classList.toggle('guest', RM.role === 'guest');
+  document.getElementById('home').classList.remove('show');
+  const bar = document.getElementById('roomBar'); bar.style.display = 'flex';
+  document.getElementById('rbCode').textContent = RM.code;
+  document.getElementById('rbExit').textContent = (RM.role === 'host') ? 'إنهاء' : 'خروج';
+  if(RM.role === 'host') setStatus(true);
+  subscribe();
+  if(!_statusTimer) _statusTimer = setInterval(tickStatus, 5000);
+  buildEntry(); render(); clearInputs();
+}
+
+/* إنهاء نهائي (بدون تأكيد) — يُستخدم عند النتيجة */
+async function endRoomFinal(){
+  if(!RM) return;
+  const c = sbClient(); const code = RM.code;
+  try{
+    state.__ended = true;
+    if(c){ await c.from('sbeit_rooms').update({ state: state, updated_at: nowISO() }).eq('code', code);
+           await c.from('sbeit_rooms').delete().eq('code', code); }
+  }catch(e){}
+  try{ localStorage.removeItem('sbeit_room_'+code); }catch(e){}
+  teardownRoom(); showHome('انتهت اللعبة');
+}
+
+/* خروج/إنهاء من زر الغرفة */
+function exitRoom(){
+  if(!RM) return;
+  if(RM.role === 'host'){
+    askConfirm('تنهي الغرفة للجميع؟ الكل بيرجع للصفحة الرئيسية.', 'إنهاء الغرفة', endRoomFinal);
+  } else {
+    teardownRoom(); showHome('خرجت من الغرفة');
+  }
+}
+function roomEnded(reason){
+  // ملاحظة: لا نكتب فوق الحساب المحلي (منفصل تماماً) — النسخة الاحتياطية تبقى تحت مفتاح الغرفة
+  teardownRoom();
+  showHome(reason === 'idle' ? 'انتهت الغرفة (خمول 4 ساعات)' : 'انتهت الغرفة');
+}
+function teardownRoom(){
+  stopHeartbeat();
+  if(RM && RM.channel){ try{ sbClient().removeChannel(RM.channel); }catch(e){} }
+  RM = null;
+  document.body.classList.remove('inroom','guest');
+  const bar = document.getElementById('roomBar'); if(bar) bar.style.display = 'none';
+}
+
+/* الحساب المحلي */
+function startLocal(){
+  RM = null;
+  document.body.classList.remove('inroom','guest');
+  document.getElementById('roomBar').style.display = 'none';
+  let loaded = null; try{ loaded = load(); }catch(e){}
+  state = loaded || freshState(0);
+  if(state.initialDealer === undefined) state.initialDealer = 0;
+  document.getElementById('home').classList.remove('show');
+  buildEntry(); render();
+}
+
+/* الصفحة الرئيسية */
+function showHome(note){
+  document.getElementById('home').classList.add('show');
+  document.getElementById('joinBox').style.display = 'none';
+  homeNote(note || '');
+}
+function homeNote(t){ const el = document.getElementById('homeNote'); if(el) el.textContent = t || ''; }
+
+/* مشاركة / نسخ الرمز */
+function shareCode(){
+  if(!RM) return;
+  const link = location.href.split('#')[0];
+  const msg = 'العب معنا بنت السبيت 🎴\nالرمز: ' + RM.code + '\nافتح: ' + link;
+  if(navigator.share){ navigator.share({ text: msg }).catch(()=>{}); }
+  else { copyText(msg); toast('تم نسخ رسالة الدعوة'); }
+}
+function copyCode(){ if(!RM) return; copyText(RM.code); toast('تم نسخ الرمز ' + RM.code); }
+function copyText(t){
+  try{ navigator.clipboard.writeText(t); }
+  catch(e){ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(_){}; ta.remove(); }
+}
+
 /* ============ ربط الأزرار ============ */
 document.getElementById('recordBtn').onclick = onRecord;
 document.getElementById('kabootBtn').onclick = showKaboot;
 document.getElementById('clearBtn').onclick = clearInputs;
 document.getElementById('undoBtn').onclick = undo;
 document.getElementById('newBtn').onclick = newGame;
-document.getElementById('optNormal').onclick = ()=> startGame(false);
-document.getElementById('optTight').onclick = ()=> startGame(true);
-document.getElementById('optCancel').onclick = ()=> document.getElementById('modeModal').classList.remove('show');
-document.getElementById('modeModal').onclick = (e)=>{ if(e.target.id==='modeModal') document.getElementById('modeModal').classList.remove('show'); };
+document.getElementById('optNormal').onclick = ()=>{
+  document.getElementById('modeModal').classList.remove('show');
+  if(_pendingCreate){ _pendingCreate=false; createRoom(false); } else startGame(false);
+};
+document.getElementById('optTight').onclick = ()=>{
+  document.getElementById('modeModal').classList.remove('show');
+  if(_pendingCreate){ _pendingCreate=false; createRoom(true); } else startGame(true);
+};
+document.getElementById('optCancel').onclick = ()=>{ _pendingCreate=false; document.getElementById('modeModal').classList.remove('show'); };
+document.getElementById('modeModal').onclick = (e)=>{ if(e.target.id==='modeModal'){ _pendingCreate=false; document.getElementById('modeModal').classList.remove('show'); } };
 
 // confirm modal
 document.getElementById('cmYes').onclick = ()=>{
@@ -957,9 +1309,27 @@ document.getElementById('nmCancel').onclick = ()=>{ closeModal('nameModal'); _na
 document.getElementById('nameModal').onclick = (e)=>{ if(e.target.id==='nameModal'){ closeModal('nameModal'); _nameCb=null; } };
 document.getElementById('nmCustom').onkeydown = (e)=>{ if(e.key==='Enter') document.getElementById('nmSave').click(); };
 
+// ===== home + room controls =====
+document.getElementById('homeCreate').onclick = ()=>{ _pendingCreate = true; document.getElementById('modeModal').classList.add('show'); };
+document.getElementById('homeJoin').onclick = ()=>{
+  const jb = document.getElementById('joinBox');
+  jb.style.display = (jb.style.display === 'none') ? 'flex' : 'none';
+  if(jb.style.display !== 'none'){ homeNote(''); setTimeout(()=>document.getElementById('joinCode').focus(), 40); }
+};
+document.getElementById('joinGo').onclick = ()=> joinRoom(document.getElementById('joinCode').value);
+document.getElementById('joinCode').oninput = (e)=>{ e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4); };
+document.getElementById('joinCode').onkeydown = (e)=>{ if(e.key==='Enter') joinRoom(e.target.value); };
+document.getElementById('homeLocal').onclick = startLocal;
+document.getElementById('rbShare').onclick = shareCode;
+document.getElementById('rbCopy').onclick = copyCode;
+document.getElementById('rbExit').onclick = exitRoom;
+document.getElementById('resultOk').onclick = endRoomFinal;
+window.addEventListener('online', ()=>{ if(RM && RM.role==='host'){ pushState(); } });
+
 /* ============ تشغيل ============ */
 buildEntry();
 render();
+showHome();
 
 /* تسجيل الـService Worker (للعمل بدون إنترنت والتثبيت كتطبيق) */
 if ('serviceWorker' in navigator) {
