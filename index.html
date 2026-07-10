@@ -252,7 +252,10 @@
   .log-hrow .lc-num{background:transparent;color:var(--muted)}
   .log-row.kaboot .lc-num{background:var(--gold)}
   .log-row.adjust .lc-num{background:#3b6fd6}
-  .lc{text-align:center;font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lc{text-align:center;font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;min-width:0}
+  .lc b{font-weight:800;font-size:14px}
+  .lc em{font-style:normal;font-weight:700;font-size:10px;color:var(--muted);margin-top:1px}
   .log-hrow .lc{font-family:'Tajawal';font-weight:700;font-size:11px}
   .lc.t0,.lc.ht0{color:var(--red)}
   .lc.t1,.lc.ht1{color:var(--spade)}
@@ -911,13 +914,16 @@ function renderLog(){
   if(n === 0){
     html += '<div class="log-empty">ما فيه دورات بعد — سجّل أول دورة وتظهر هنا</div>';
   } else {
+    const run = [state.start, state.start, state.start, state.start];   // المجموع التراكمي
     for(let k = 0; k < n; k++){
       const r = state.history[k];
+      const before = run.slice();                       // المجموع قبل هذه الدورة
+      for(let i=0;i<4;i++) run[i] += r.deltas[i];
       const cls = r.type === 'kaboot' ? ' kaboot' : (r.type === 'adjust' ? ' adjust' : '');
       const num = r.type === 'kaboot' ? 'ك' : (r.type === 'adjust' ? 'ت' : (k+1));
       html += '<div class="log-row'+cls+'">' +
         '<span class="lc-num">'+num+'</span>' +
-        r.deltas.map((d,i) => '<span class="lc ht'+state.players[i].team+'">'+fmt(d)+'</span>').join('') +
+        r.deltas.map((d,i) => '<span class="lc ht'+state.players[i].team+'"><b>'+fmt(d)+'</b><em>'+(k===0?'':before[i])+'</em></span>').join('') +
       '</div>';
     }
   }
