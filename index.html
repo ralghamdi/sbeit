@@ -223,10 +223,11 @@
   /* kaboot picker (inside modal) */
   #kabootPick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
   .kb{border:2px solid var(--line);border-radius:12px;padding:14px 8px;background:#fff;cursor:pointer;
-      font-family:'Cairo';font-weight:800;font-size:15px;text-align:center}
+      font-family:'Cairo';font-weight:800;font-size:14px;text-align:center;line-height:1.3;
+      display:flex;flex-direction:column;justify-content:center;min-height:78px}
   .kb.t0{border-color:var(--red);color:var(--red)}
   .kb.t1{border-color:var(--spade);color:var(--spade)}
-  .kb small{display:block;font-family:'Tajawal';font-weight:500;font-size:10px;color:var(--muted);margin-top:4px}
+  .kb small{display:block;font-family:'Tajawal';font-weight:500;font-size:10px;color:var(--muted);margin-top:5px}
 
   /* ===== Log (سجل الصكة) — inline, always visible ===== */
   .log-panel{flex:1 1 0;min-height:100px;display:flex;flex-direction:column;padding:8px 11px 9px}
@@ -281,6 +282,19 @@
     padding:12px;font-family:'Tajawal';font-weight:700;font-size:14px;cursor:pointer;margin-top:2px;
   }
   .modal-tall{max-width:400px}
+  .nm-list{display:flex;flex-direction:column;gap:6px;max-height:52vh;overflow-y:auto;margin-bottom:12px}
+  .nm-item{
+    width:100%;text-align:center;border:1.5px solid var(--line);background:#fff;border-radius:12px;
+    padding:12px 14px;font-family:'Tajawal';font-weight:700;font-size:16px;color:var(--ink);cursor:pointer;transition:.1s;
+  }
+  .nm-item:active{background:#f2f0ea;transform:scale(.99)}
+  .nm-item.current{border-color:var(--gold);background:#fdf9ec}
+  .nm-item.other{border-style:dashed;color:var(--felt);font-weight:800}
+  .nm-field{
+    width:100%;border:1.5px solid var(--line);border-radius:12px;padding:13px 12px;font-family:'Tajawal';
+    font-weight:700;font-size:17px;color:var(--ink);outline:none;margin-bottom:12px;background:#fff;
+  }
+  .nm-field:focus{border-color:var(--gold)}
   .info-text{color:var(--ink)!important;font-size:14px!important;line-height:1.9;margin:0 0 14px!important}
   .info-text b{color:var(--felt)}
 
@@ -382,6 +396,18 @@
   </div>
 </div>
 
+<div id="nameModal" class="modal">
+  <div class="modal-card modal-tall">
+    <h3>اختر اسم اللاعب</h3>
+    <div id="nmList" class="nm-list"></div>
+    <div id="nmCustomWrap" style="display:none">
+      <input id="nmCustom" type="text" class="nm-field" placeholder="اكتب اسم اللاعب">
+      <button class="mode-opt" id="nmSave"><span class="mo-title">حفظ</span></button>
+    </div>
+    <button class="mode-cancel" id="nmCancel">إلغاء</button>
+  </div>
+</div>
+
 <div id="kabootModal" class="modal">
   <div class="modal-card">
     <h3>كبوت</h3>
@@ -418,6 +444,7 @@ const THRESHOLD = 152;
 const VALID_TOTALS = [36, 46, 49, 59];
 const SUITS = ['♥', '♠'];              // فريق 1 / فريق 2
 const KEY = 'bintelsbeit_state_v2';
+const NAME_LIST = ['عبدالله','أبو أحمد','العسكر','القعود','أبو سالم','فهد','أبو غلا','رائد','يوسف','حسام','أبو فيصل','معتز','أبو نورة','أبو جود','أبو منيرة','الزوم'];
 
 /* ============ التخزين (آمن، ما يوقف لو تعطّل) ============ */
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
@@ -555,14 +582,12 @@ function editScore(i){
   });
 }
 
-/* تغيير اسم لاعب / فريق عبر نافذة كبيرة */
+/* تغيير اسم لاعب: قائمة أسماء جاهزة + خيار كتابة */
 function renamePlayer(i){
-  askInput('اسم اللاعب', state.players[i].name, (val)=>{
-    const name = (val || '').trim();
-    if(!name){ toast('الاسم لا يمكن أن يكون فارغاً'); return; }
+  askName(state.players[i].name, (name)=>{
     state.players[i].name = name;
     save(); render();
-  }, 'text');
+  });
 }
 function renameTeam(t){
   askInput('اسم الفريق', state.teams[t].name, (val)=>{
@@ -571,6 +596,30 @@ function renameTeam(t){
     state.teams[t].name = name;
     save(); render();
   }, 'text');
+}
+
+let _nameCb = null;
+function askName(current, cb){
+  _nameCb = cb;
+  const list = document.getElementById('nmList');
+  const wrap = document.getElementById('nmCustomWrap');
+  wrap.style.display = 'none';
+  list.style.display = 'flex';
+  list.innerHTML =
+    NAME_LIST.map((n, idx) => '<button class="nm-item'+(n===current?' current':'')+'" data-idx="'+idx+'">'+esc(n)+'</button>').join('') +
+    '<button class="nm-item other" data-other="1">لاعب آخر (كتابة)…</button>';
+  list.querySelectorAll('[data-idx]').forEach(btn=>{
+    btn.onclick = ()=>{ closeModal('nameModal'); const cb2=_nameCb; _nameCb=null; if(cb2) cb2(NAME_LIST[+btn.dataset.idx]); };
+  });
+  list.querySelector('[data-other]').onclick = ()=>{
+    list.style.display = 'none';
+    wrap.style.display = 'block';
+    const inp = document.getElementById('nmCustom');
+    inp.value = NAME_LIST.includes(current) ? '' : (current || '');
+    setTimeout(()=>{ inp.focus(); inp.select(); }, 40);
+  };
+  document.getElementById('nameModal').classList.add('show');
+  list.scrollTop = 0;   // ابدأ من فوق
 }
 
 /* ============ واجهة الإدخال ============ */
@@ -640,8 +689,8 @@ function showKaboot(){
   if(state.finished){ toast('اللعبة انتهت — ابدأ لعبة جديدة'); return; }
   const box = document.getElementById('kabootPick');
   box.innerHTML =
-    '<div class="kb t0" data-k="0">'+esc(state.teams[0].name)+'<small>كبت: لاعبوه ‎-10‎ · الفريق الثاني ‎+26‎</small></div>' +
-    '<div class="kb t1" data-k="1">'+esc(state.teams[1].name)+'<small>كبت: لاعبوه ‎-10‎ · الفريق الأول ‎+26‎</small></div>';
+    '<div class="kb t0" data-k="0">'+esc(teamNames(0))+'<small>كبتوا: لهم ‎-10‎ لكل لاعب · للطرف الآخر ‎+26‎</small></div>' +
+    '<div class="kb t1" data-k="1">'+esc(teamNames(1))+'<small>كبتوا: لهم ‎-10‎ لكل لاعب · للطرف الآخر ‎+26‎</small></div>';
   box.querySelectorAll('.kb').forEach(el=>{
     el.onclick = ()=> applyKaboot(parseInt(el.dataset.k,10));
   });
@@ -653,7 +702,7 @@ function applyKaboot(k){
   recordRound(deltas, 'kaboot', 'كبوت — ' + state.teams[k].name);
   hideKaboot();
   clearInputs();
-  toast('تم تسجيل الكبوت لصالح ' + state.teams[k].name);
+  toast('تم تسجيل الكبوت لصالح ' + teamNames(k));
 }
 
 /* ============ الرسم ============ */
@@ -896,6 +945,17 @@ document.getElementById('kabootModal').onclick = (e)=>{ if(e.target.id==='kaboot
 document.getElementById('infoBtn').onclick = ()=> document.getElementById('infoModal').classList.add('show');
 document.getElementById('infoCancel').onclick = ()=> closeModal('infoModal');
 document.getElementById('infoModal').onclick = (e)=>{ if(e.target.id==='infoModal') closeModal('infoModal'); };
+
+// name picker modal (custom field save + cancel)
+document.getElementById('nmSave').onclick = ()=>{
+  const name = document.getElementById('nmCustom').value.trim();
+  if(!name){ toast('اكتب اسم اللاعب'); return; }
+  closeModal('nameModal');
+  const cb = _nameCb; _nameCb = null; if(cb) cb(name);
+};
+document.getElementById('nmCancel').onclick = ()=>{ closeModal('nameModal'); _nameCb = null; };
+document.getElementById('nameModal').onclick = (e)=>{ if(e.target.id==='nameModal'){ closeModal('nameModal'); _nameCb=null; } };
+document.getElementById('nmCustom').onkeydown = (e)=>{ if(e.key==='Enter') document.getElementById('nmSave').click(); };
 
 /* ============ تشغيل ============ */
 buildEntry();
