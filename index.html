@@ -49,7 +49,12 @@
   }
   .wrap{
     width:100%;max-width:440px;flex:1;min-height:0;
-    display:flex;flex-direction:column;gap:7px;overflow-y:auto;
+    display:flex;flex-direction:column;gap:5px;overflow:hidden;
+  }
+  /* النصف الأعلى: اللاعبون + الإدخال (يمرّر داخلياً لو طال) */
+  .top{
+    flex:66 1 0;min-height:0;overflow-y:auto;
+    display:flex;flex-direction:column;gap:5px;
   }
 
   /* ===== Header ===== */
@@ -98,21 +103,23 @@
   #notice.warn{background:#8a5a00}
 
   /* ===== Scoreboard ===== */
-  .board{display:flex;flex-direction:column;gap:7px;flex-shrink:0}
+  .board{display:flex;flex-direction:column;gap:5px;flex-shrink:0}
   .suit{font-size:16px;line-height:1}
 
   /* teams legend */
   .teams-legend{display:flex;gap:7px}
   .tchip{
     flex:1;min-width:0;display:flex;align-items:center;gap:7px;color:#fff;
-    background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);border-radius:11px;padding:6px 9px;
+    background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);border-radius:10px;padding:4px 8px;
   }
   .tchip .tc-body{min-width:0}
   .tchip .tc-name{
-    font-family:'Cairo';font-weight:800;font-size:13px;outline:none;border-radius:6px;padding:0 3px;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    display:flex;align-items:center;gap:3px;font-family:'Cairo';font-weight:800;font-size:13px;
+    cursor:pointer;border-radius:6px;padding:0 3px;min-width:0;
   }
-  .tchip .tc-name:focus{background:rgba(255,255,255,.18)}
+  .tchip .tc-name .tc-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .tchip .tc-name .pn-edit{font-style:normal;font-size:9px;color:var(--gold);flex-shrink:0;opacity:.85}
+  .tchip .tc-name:active{background:rgba(255,255,255,.18)}
   .tchip .tc-members{font-size:10px;color:rgba(255,255,255,.68);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .tchip.team0{border-inline-start:4px solid var(--red)}
   .tchip.team1{border-inline-start:4px solid #cfcfcf}
@@ -122,27 +129,32 @@
   /* player row: 1..4 by seat, right→left */
   .players-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
   .pcard{
-    background:var(--paper);border-radius:12px;padding:7px 6px 8px;position:relative;overflow:hidden;
+    background:var(--paper);border-radius:12px;padding:6px 6px 7px;position:relative;overflow:hidden;
     box-shadow:0 2px 8px rgba(0,0,0,.12);border-top:3px solid var(--line);min-width:0;
   }
   .pc-top{display:flex;align-items:center;gap:3px;margin-bottom:1px}
   .pc-top .suit{font-size:11px}
   .pcard .pname{
-    font-weight:700;font-size:11px;color:var(--muted);outline:none;border-radius:6px;padding:0 2px;
-    display:inline-block;min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    display:flex;align-items:center;gap:2px;min-width:0;flex:1;cursor:pointer;
+    border-radius:6px;padding:1px 3px;background:#f4f2ec;
   }
-  .pcard .pname:focus{background:#f2f0ea;color:var(--ink)}
+  .pcard .pname:active{background:#e9e6db}
+  .pcard .pname .pn-text{
+    font-weight:700;font-size:11px;color:var(--muted);min-width:0;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .pcard .pname .pn-edit{font-style:normal;font-size:9px;color:var(--gold);flex-shrink:0;opacity:.8}
   .pcard .score{
-    font-family:'Cairo';font-weight:900;font-size:clamp(22px,7vw,32px);line-height:1;margin:3px 0 6px;
+    font-family:'Cairo';font-weight:900;font-size:clamp(18px,5.5vw,26px);line-height:1;margin:1px 0 4px;
     letter-spacing:-1px;cursor:pointer;text-align:center;
   }
   .pcard.team0{border-top-color:var(--red)}
   .pcard.team1{border-top-color:var(--spade)}
   .pcard.team0 .score,.pcard.team0 .pc-top .suit{color:var(--red)}
   .pcard.team1 .score,.pcard.team1 .pc-top .suit{color:var(--spade)}
-  .bar{height:6px;border-radius:99px;background:#eceae4;overflow:hidden}
+  .bar{height:5px;border-radius:99px;background:#eceae4;overflow:hidden}
   .bar > i{display:block;height:100%;border-radius:99px;transition:width .35s ease,background .35s}
-  .pcard .dist{font-size:10px;color:var(--muted);margin-top:4px;font-weight:500;text-align:center}
+  .pcard .dist{font-size:9px;color:var(--muted);margin-top:3px;font-weight:500;text-align:center}
   .pcard.dead{outline:2px solid var(--danger)}
   .pcard.dead::after{
     content:"خسر";position:absolute;top:5px;left:5px;background:var(--danger);color:#fff;
@@ -152,49 +164,48 @@
   .pcard.dealer{box-shadow:0 0 0 2px var(--gold), 0 2px 10px rgba(0,0,0,.16)}
   .pcard .deal-badge{position:absolute;top:3px;right:4px;font-size:12px;line-height:1}
   .dealer-line{
-    text-align:center;color:#fff;font-family:'Cairo';font-weight:700;font-size:12px;
-    background:rgba(201,162,39,.16);border:1px solid rgba(201,162,39,.4);border-radius:10px;
-    padding:5px 9px;cursor:pointer;user-select:none;
+    text-align:center;color:#fff;font-family:'Cairo';font-weight:700;font-size:11px;
+    background:rgba(201,162,39,.16);border:1px solid rgba(201,162,39,.4);border-radius:9px;
+    padding:3px 8px;cursor:pointer;user-select:none;
   }
   .dealer-line b{color:var(--gold)}
   .dealer-line .dl-hint{font-family:'Tajawal';font-weight:500;font-size:10px;color:rgba(255,255,255,.6)}
 
   /* ===== Round entry ===== */
   .panel{
-    background:var(--paper);border-radius:16px;padding:10px;box-shadow:var(--shadow);
+    background:var(--paper);border-radius:14px;padding:8px 10px;box-shadow:var(--shadow);
   }
   .entry-panel{flex-shrink:0}
-  .entry-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-  .ri{border:1px solid var(--line);border-radius:11px;padding:6px 7px;min-width:0}
-  .ri-name{font-size:11px;font-weight:700;color:var(--muted);display:block;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .ri.t0{border-inline-start:4px solid var(--red)}
-  .ri.t1{border-inline-start:4px solid var(--spade)}
-  .ri-row{display:flex;gap:5px;align-items:stretch}
+  .entry-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .ri{border:1px solid var(--line);border-radius:10px;padding:4px 4px;min-width:0;text-align:center;border-top:3px solid var(--line)}
+  .ri-name{font-size:10px;font-weight:700;color:var(--muted);display:block;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ri.t0{border-top-color:var(--red)}
+  .ri.t1{border-top-color:var(--spade)}
   .ri-input{
-    flex:1;min-width:0;border:1.5px solid var(--line);border-radius:9px;padding:7px 4px;font-family:'Cairo';
-    font-weight:700;font-size:18px;text-align:center;color:var(--ink);outline:none;
+    width:100%;min-width:0;border:1.5px solid var(--line);border-radius:8px;padding:5px 2px;font-family:'Cairo';
+    font-weight:700;font-size:15px;text-align:center;color:var(--ink);outline:none;
   }
   .ri-input:focus{border-color:var(--gold)}
   .ri-input.neg{color:var(--danger)}
   .q5{
-    flex:0 0 auto;width:42px;border:1px solid var(--line);background:#faf9f6;border-radius:9px;
-    font-family:'Tajawal';font-weight:800;font-size:13px;color:var(--muted);cursor:pointer;transition:.12s;
+    width:100%;margin-top:3px;border:1px solid var(--line);background:#faf9f6;border-radius:8px;padding:4px 2px;
+    font-family:'Tajawal';font-weight:800;font-size:12px;color:var(--muted);cursor:pointer;transition:.12s;
   }
   .q5:active{transform:scale(.95)}
   .q5.on{background:var(--danger);color:#fff;border-color:var(--danger)}
 
   .sumline{
-    display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;
-    padding:6px 10px;border-radius:10px;background:#f7f6f2;font-size:12px;font-weight:700;
+    display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:5px;
+    padding:4px 9px;border-radius:9px;background:#f7f6f2;font-size:12px;font-weight:700;
   }
   .chip{padding:3px 10px;border-radius:99px;font-size:12px;font-weight:800}
   .chip.ok{background:#e3f6ee;color:var(--ok)}
   .chip.bad{background:#fdeaea;color:var(--danger)}
   .chip.neutral{background:#eee;color:var(--muted)}
 
-  .actions{display:flex;gap:6px;margin-top:8px}
+  .actions{display:flex;gap:6px;margin-top:6px}
   .btn{
-    border:none;border-radius:11px;padding:12px 10px;font-family:'Cairo';font-weight:700;font-size:15px;
+    border:none;border-radius:11px;padding:10px 8px;font-family:'Cairo';font-weight:700;font-size:15px;
     cursor:pointer;transition:.15s;
   }
   .btn:active{transform:scale(.98)}
@@ -215,24 +226,33 @@
   .kb.t1{border-color:var(--spade);color:var(--spade)}
   .kb small{display:block;font-family:'Tajawal';font-weight:500;font-size:10px;color:var(--muted);margin-top:4px}
 
-  /* ===== History (in modal) ===== */
-  #histList{margin-top:6px;display:flex;flex-direction:column;gap:6px;max-height:56vh;overflow-y:auto}
-  .hrow{
-    display:grid;grid-template-columns:24px 1fr auto;gap:8px;align-items:center;
-    background:#f7f6f2;border-radius:10px;padding:8px 10px;font-size:13px;
+  /* ===== Log (سجل الصكة) — inline, always visible ===== */
+  .log-panel{flex:34 1 0;min-height:96px;display:flex;flex-direction:column;padding:7px 10px 9px}
+  .log-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+  .log-head span:first-child{font-family:'Cairo';font-weight:800;font-size:13px;color:var(--ink)}
+  #logCount{font-size:11px;color:var(--muted);font-weight:600}
+  .log-grid{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:3px}
+  .log-row{
+    display:grid;grid-template-columns:26px repeat(4,1fr);gap:5px;align-items:center;
+    padding:5px 4px;border-radius:8px;
   }
-  .hrow .hn{width:24px;height:24px;border-radius:99px;background:var(--felt);color:#fff;font-weight:800;
-            font-size:11px;display:flex;align-items:center;justify-content:center}
-  .hrow .hv{display:flex;gap:6px;flex-wrap:wrap;font-weight:700}
-  .hrow .hv b{font-weight:700}
-  .hrow .hv .ht0{color:var(--red)}
-  .hrow .hv .ht1{color:var(--spade)}
-  .hrow .htag{font-size:11px;color:var(--gold);font-weight:800}
-  .empty{color:var(--muted);font-size:13px;text-align:center;padding:14px}
-
-  .legend{color:rgba(255,255,255,.75);font-size:11px;text-align:center;margin-top:16px;line-height:1.7}
-  .legend b{color:#fff}
-
+  .log-hrow{position:sticky;top:0;background:var(--paper);padding-top:0;padding-bottom:6px;
+            border-bottom:1px solid var(--line);border-radius:0;z-index:1}
+  .log-row:not(.log-hrow):nth-child(odd){background:#f7f6f2}
+  .log-row.kaboot{background:#fdf6e3}
+  .log-row.adjust{background:#eef4ff}
+  .lc-num{
+    width:22px;height:22px;justify-self:center;border-radius:99px;background:var(--felt);color:#fff;
+    font-weight:800;font-size:10px;display:flex;align-items:center;justify-content:center;
+  }
+  .log-hrow .lc-num{background:transparent;color:var(--muted)}
+  .log-row.kaboot .lc-num{background:var(--gold)}
+  .log-row.adjust .lc-num{background:#3b6fd6}
+  .lc{text-align:center;font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .log-hrow .lc{font-family:'Tajawal';font-weight:700;font-size:11px}
+  .lc.t0,.lc.ht0{color:var(--red)}
+  .lc.t1,.lc.ht1{color:var(--spade)}
+  .log-empty{color:var(--muted);font-size:12px;text-align:center;padding:16px 8px}
   /* ===== Mode modal ===== */
   .modal{
     display:none;position:fixed;inset:0;z-index:60;
@@ -282,11 +302,12 @@
     </div>
     <div class="hbtns">
       <button class="icon-btn" id="undoBtn" title="تراجع">↩︎</button>
-      <button class="icon-btn" id="histBtn" title="السجل">🗒️</button>
       <button class="icon-btn" id="infoBtn" title="القيم">؟</button>
       <button class="icon-btn accent" id="newBtn">جديدة</button>
     </div>
   </header>
+
+  <div class="top">
 
   <div id="result"><div class="result-card">
     <div class="crown">👑</div>
@@ -310,6 +331,16 @@
       <button class="btn btn-kaboot" id="kabootBtn">كبوت</button>
       <button class="btn btn-ghost" id="clearBtn">مسح</button>
     </div>
+  </div>
+
+  </div><!-- /.top -->
+
+  <div class="panel log-panel">
+    <div class="log-head">
+      <span>سجل الصكة</span>
+      <span id="logCount"></span>
+    </div>
+    <div class="log-grid" id="logGrid"></div>
   </div>
 
 </div>
@@ -358,13 +389,7 @@
   </div>
 </div>
 
-<div id="histModal" class="modal">
-  <div class="modal-card modal-tall">
-    <h3>سجل الدورات <span id="histCount" style="color:var(--muted);font-weight:500;font-size:13px"></span></h3>
-    <div id="histList"></div>
-    <button class="mode-cancel" id="histCancel" style="margin-top:12px">إغلاق</button>
-  </div>
-</div>
+<div id="histModalRemoved" hidden></div>
 
 <div id="infoModal" class="modal">
   <div class="modal-card">
@@ -471,6 +496,7 @@ function currentDealer(){
 /* ============ إجراءات ============ */
 function recordRound(deltas, type, label){
   state.history.push({type, deltas, label});
+  _scrollLogBottom = true;
   const ev = evaluateEnd();
   if(ev.finished){
     state.finished = true;
@@ -525,6 +551,24 @@ function editScore(i){
     deltas[i] = n - t[i];
     recordRound(deltas, 'adjust', 'تصحيح: ' + state.players[i].name);
   });
+}
+
+/* تغيير اسم لاعب / فريق عبر نافذة كبيرة */
+function renamePlayer(i){
+  askInput('اسم اللاعب', state.players[i].name, (val)=>{
+    const name = (val || '').trim();
+    if(!name){ toast('الاسم لا يمكن أن يكون فارغاً'); return; }
+    state.players[i].name = name;
+    save(); render();
+  }, 'text');
+}
+function renameTeam(t){
+  askInput('اسم الفريق', state.teams[t].name, (val)=>{
+    const name = (val || '').trim();
+    if(!name){ toast('الاسم لا يمكن أن يكون فارغاً'); return; }
+    state.teams[t].name = name;
+    save(); render();
+  }, 'text');
 }
 
 /* ============ واجهة الإدخال ============ */
@@ -626,10 +670,9 @@ function render(){
   const dealer = currentDealer();
   const noRounds = state.history.length === 0;
 
-  // اللوحة: شريط الفرق + صف اللاعبين بالترتيب 1..4 (يمين ← يسار) + سطر الموزّع
+  // اللوحة: صف اللاعبين بالترتيب 1..4 (يمين ← يسار) + سطر الموزّع
   const board = document.getElementById('board');
   board.innerHTML =
-    '<div class="teams-legend">' + teamChip(0) + teamChip(1) + '</div>' +
     '<div class="players-row">' + [0,1,2,3].map(i => playerCard(i, t[i], dealer)).join('') + '</div>' +
     '<div class="dealer-line" id="dealerLine">🃏 الموزّع: <b>' + esc(state.players[dealer].name) + '</b>' +
       (noRounds ? ' <span class="dl-hint">(اضغط لتغيير الموزّع الأول)</span>' : '') +
@@ -639,29 +682,23 @@ function render(){
   const res = document.getElementById('result');
   if(state.result){
     res.classList.add('show');
-    document.getElementById('loseText').textContent = 'خسر ' + state.teams[state.result.losing].name;
-    document.getElementById('winText').textContent = '🏆 فاز ' + state.teams[state.result.winning].name;
+    document.getElementById('loseText').textContent = 'خسر ' + teamNames(state.result.losing);
+    document.getElementById('winText').textContent = '🏆 فاز ' + teamNames(state.result.winning);
     document.getElementById('whyText').textContent = state.result.why;
   } else {
     res.classList.remove('show');
   }
 
   // السجل
-  renderHistory();
+  renderLog();
   updateSum();
+  syncEntryLabels();
   attachEditable();
 }
 
-function teamChip(tm){
-  const members = [0,1,2,3].filter(i => state.players[i].team === tm)
-                           .map(i => state.players[i].name).join(' و ');
-  return '<div class="tchip team'+tm+'">' +
-    '<span class="suit">'+SUITS[tm]+'</span>' +
-    '<div class="tc-body">' +
-      '<div class="tc-name" contenteditable="true" data-team="'+tm+'">'+esc(state.teams[tm].name)+'</div>' +
-      '<div class="tc-members">'+esc(members)+'</div>' +
-    '</div>' +
-  '</div>';
+function teamNames(tm){
+  return [0,1,2,3].filter(i => state.players[i].team === tm)
+                  .map(i => state.players[i].name).join(' و ');
 }
 
 function playerCard(i, score, dealer){
@@ -675,7 +712,7 @@ function playerCard(i, score, dealer){
     (isDealer ? '<span class="deal-badge">🃏</span>' : '') +
     '<div class="pc-top">' +
       '<span class="suit">'+SUITS[tm]+'</span>' +
-      '<span class="pname" contenteditable="true" data-player="'+i+'">'+esc(state.players[i].name)+'</span>' +
+      '<span class="pname" data-rename="'+i+'"><span class="pn-text">'+esc(state.players[i].name)+'</span><i class="pn-edit">✎</i></span>' +
     '</div>' +
     '<div class="score" data-edit="'+i+'">'+score+'</div>' +
     '<div class="bar"><i style="width:'+pct+'%;background:'+barColor(pct)+'"></i></div>' +
@@ -693,26 +730,33 @@ function evaluateIsDead(i){
 }
 function evaluateEndDeadSet(){ /* placeholder, dead handled per-card */ }
 
-function renderHistory(){
-  const list = document.getElementById('histList');
-  const count = state.history.length;
-  document.getElementById('histCount').textContent = count ? '('+count+')' : '';
-  if(count === 0){
-    list.innerHTML = '<div class="empty">ما فيه دورات مسجّلة بعد</div>';
-    return;
+let _scrollLogBottom = false;
+function renderLog(){
+  const grid = document.getElementById('logGrid');
+  const n = state.history.length;
+  document.getElementById('logCount').textContent = n ? ('(' + n + ' دورة)') : '';
+
+  // صف العناوين: أسماء اللاعبين بالأعمدة (محاذية للمربعات فوق)
+  let html = '<div class="log-row log-hrow">' +
+    '<span class="lc-num">#</span>' +
+    [0,1,2,3].map(i => '<span class="lc t'+state.players[i].team+'">'+esc(state.players[i].name)+'</span>').join('') +
+  '</div>';
+
+  if(n === 0){
+    html += '<div class="log-empty">ما فيه دورات بعد — سجّل أول دورة وتظهر هنا</div>';
+  } else {
+    for(let k = 0; k < n; k++){
+      const r = state.history[k];
+      const cls = r.type === 'kaboot' ? ' kaboot' : (r.type === 'adjust' ? ' adjust' : '');
+      const num = r.type === 'kaboot' ? 'ك' : (r.type === 'adjust' ? 'ت' : (k+1));
+      html += '<div class="log-row'+cls+'">' +
+        '<span class="lc-num">'+num+'</span>' +
+        r.deltas.map((d,i) => '<span class="lc ht'+state.players[i].team+'">'+fmt(d)+'</span>').join('') +
+      '</div>';
+    }
   }
-  let html = '';
-  for(let k = count-1; k >= 0; k--){
-    const r = state.history[k];
-    const vals = r.deltas.map((d,i)=> '<b class="ht'+state.players[i].team+'">'+fmt(d)+'</b>').join(' · ');
-    const tag = r.label ? '<span class="htag">'+esc(r.label)+'</span>' : '';
-    html += '<div class="hrow">' +
-      '<span class="hn">'+(k+1)+'</span>' +
-      '<span class="hv">'+vals+'</span>' +
-      tag +
-    '</div>';
-  }
-  list.innerHTML = html;
+  grid.innerHTML = html;
+  if(_scrollLogBottom){ grid.scrollTop = grid.scrollHeight; _scrollLogBottom = false; }
 }
 
 /* ============ أدوات ============ */
@@ -728,23 +772,13 @@ function toast(msg, kind){
   noticeTimer = setTimeout(()=> el.className = '', 2600);
 }
 
-/* حفظ الأسماء عند التعديل */
+/* ربط التعديلات (ضغطة تفتح نافذة) */
 function attachEditable(){
-  document.querySelectorAll('[data-player]').forEach(el=>{
-    el.onblur = ()=>{
-      const i = +el.dataset.player;
-      state.players[i].name = el.textContent.trim() || state.players[i].name;
-      save(); syncEntryLabels(); render();
-    };
-    el.onkeydown = e=>{ if(e.key==='Enter'){ e.preventDefault(); el.blur(); } };
+  document.querySelectorAll('[data-rename]').forEach(el=>{
+    el.onclick = ()=> renamePlayer(+el.dataset.rename);
   });
-  document.querySelectorAll('[data-team]').forEach(el=>{
-    el.onblur = ()=>{
-      const i = +el.dataset.team;
-      state.teams[i].name = el.textContent.trim() || state.teams[i].name;
-      save();
-    };
-    el.onkeydown = e=>{ if(e.key==='Enter'){ e.preventDefault(); el.blur(); } };
+  document.querySelectorAll('[data-teamname]').forEach(el=>{
+    el.onclick = ()=> renameTeam(+el.dataset.teamname);
   });
   document.querySelectorAll('[data-edit]').forEach(el=>{
     el.onclick = ()=> editScore(+el.dataset.edit);
@@ -770,10 +804,8 @@ function buildEntry(){
     cell.className = 'ri t'+tm;
     cell.innerHTML =
       '<span class="ri-name" id="lbl'+i+'">'+esc(state.players[i].name)+'</span>' +
-      '<div class="ri-row">' +
-        '<input class="ri-input" id="in'+i+'" type="text" inputmode="numeric" placeholder="0">' +
-        '<button class="q5" data-p="'+i+'">‎-5‎</button>' +
-      '</div>';
+      '<input class="ri-input" id="in'+i+'" type="text" inputmode="numeric" placeholder="0">' +
+      '<button class="q5" data-p="'+i+'">‎-5‎</button>';
     grid.appendChild(cell);
   }
   // ربط الأحداث: الكتابة تقبل أرقام فقط (بدون سالب). السالب -5 من الزر فقط.
@@ -817,9 +849,11 @@ function askConfirm(msg, yesLabel, cb){
   document.getElementById('confirmModal').classList.add('show');
 }
 let _inputCb = null;
-function askInput(title, current, cb){
+function askInput(title, current, cb, type){
   document.getElementById('imTitle').textContent = title;
   const inp = document.getElementById('imInput');
+  inp.type = (type === 'text') ? 'text' : 'number';
+  inp.inputMode = (type === 'text') ? 'text' : 'numeric';
   inp.value = current;
   _inputCb = cb;
   document.getElementById('inputModal').classList.add('show');
@@ -854,13 +888,10 @@ document.getElementById('imCancel').onclick = ()=>{ document.getElementById('inp
 document.getElementById('inputModal').onclick = (e)=>{ if(e.target.id==='inputModal'){ document.getElementById('inputModal').classList.remove('show'); _inputCb=null; } };
 document.getElementById('imInput').onkeydown = (e)=>{ if(e.key==='Enter') document.getElementById('imSave').click(); };
 
-// kaboot / history / info modals
+// kaboot / info modals
 function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 document.getElementById('kbCancel').onclick = ()=> closeModal('kabootModal');
 document.getElementById('kabootModal').onclick = (e)=>{ if(e.target.id==='kabootModal') closeModal('kabootModal'); };
-document.getElementById('histBtn').onclick = ()=>{ renderHistory(); document.getElementById('histModal').classList.add('show'); };
-document.getElementById('histCancel').onclick = ()=> closeModal('histModal');
-document.getElementById('histModal').onclick = (e)=>{ if(e.target.id==='histModal') closeModal('histModal'); };
 document.getElementById('infoBtn').onclick = ()=> document.getElementById('infoModal').classList.add('show');
 document.getElementById('infoCancel').onclick = ()=> closeModal('infoModal');
 document.getElementById('infoModal').onclick = (e)=>{ if(e.target.id==='infoModal') closeModal('infoModal'); };
