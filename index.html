@@ -1264,10 +1264,16 @@ function copyText(t){
 
 /* ============ الصوت (NourVoice عبر وسيط Supabase) — المضيف في الغرفة فقط ============ */
 const SPEAK_URL = SB_URL + '/functions/v1/speak';
-let _audio = null;
+let _audio = null, _lastText = '', _lastUrl = '';
 
 // الصوت فقط للمضيف داخل غرفة (لا محلي، لا ضيف)
 function canSpeak(){ return !!(typeof RM !== 'undefined' && RM && RM.role === 'host'); }
+
+function playUrl(url){
+  try{ if(_audio){ _audio.pause(); } }catch(e){}
+  _audio = new Audio(url);
+  _audio.play().catch(()=>{});
+}
 
 // تحويل رقم إلى كلمات عربية
 function arWords(n){
@@ -1298,6 +1304,8 @@ function totalsSentence(){
 async function speakTotals(){
   if(!canSpeak() || !navigator.onLine) return;
   const text = totalsSentence();
+  // نفس النص المنطوق آخر مرة؟ أعِد تشغيل نفس المقطع (مطابق تماماً + يوفّر الحصة)
+  if(text === _lastText && _lastUrl){ playUrl(_lastUrl); return; }
   try{
     const res = await fetch(SPEAK_URL, {
       method: 'POST',
@@ -1306,11 +1314,10 @@ async function speakTotals(){
     });
     if(!res.ok){ return; }                 // فشل الصوت — نتجاهل بصمت (ما يعطّل اللعب)
     const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    try{ if(_audio){ _audio.pause(); } }catch(e){}
-    _audio = new Audio(url);
-    _audio.onended = ()=>{ try{ URL.revokeObjectURL(url); }catch(e){} };
-    _audio.play().catch(()=>{});
+    if(_lastUrl){ try{ URL.revokeObjectURL(_lastUrl); }catch(e){} }
+    _lastUrl = URL.createObjectURL(blob);
+    _lastText = text;
+    playUrl(_lastUrl);
   }catch(e){}
 }
 function autoSpeak(){ speakTotals(); }
