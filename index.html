@@ -375,7 +375,7 @@
     <button class="home-btn primary" id="homeCreate">➕ إنشاء غرفة</button>
     <button class="home-btn" id="homeJoin">🔑 الدخول إلى غرفة</button>
     <div id="joinBox" class="join-box" style="display:none">
-      <input id="joinCode" class="join-input" maxlength="4" placeholder="اكتب الرمز (4 خانات)" inputmode="text" autocapitalize="characters" autocomplete="off">
+      <input id="joinCode" class="join-input" maxlength="4" placeholder="اكتب الرمز (4 أرقام)" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
       <button class="home-btn primary" id="joinGo">دخول</button>
     </div>
     <button class="home-btn ghost" id="homeLocal">📴 حساب محلي (بدون غرفة)</button>
@@ -1040,7 +1040,7 @@ function askInput(title, current, cb, type){
 /* ============ الغرف (Supabase Realtime) ============ */
 const SB_URL = 'https://ntytvgtkckotpoirvpoc.supabase.co';
 const SB_KEY = 'sb_publishable_xy6WD1QAybOz9_a_t0c75g_y39-wFpN';
-const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // بدون 0 O 1 I L
+const CODE_ALPHABET = '0123456789'; // أرقام فقط (أسهل)
 let sb = null, RM = null, _statusTimer = null, _pendingCreate = false;
 
 function sbClient(){
@@ -1102,8 +1102,8 @@ async function createRoom(tight){
 
 /* الدخول لغرفة */
 async function joinRoom(codeRaw){
-  const code = (codeRaw||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);
-  if(code.length !== 4){ homeNote('الرمز 4 خانات'); return; }
+  const code = (codeRaw||'').replace(/[^0-9]/g,'').slice(0,4);
+  if(code.length !== 4){ homeNote('الرمز 4 أرقام'); return; }
   const c = sbClient();
   if(!c || !navigator.onLine){ homeNote('يلزم اتصال بالإنترنت للدخول'); return; }
   homeNote('جاري الدخول…');
@@ -1335,7 +1335,7 @@ document.getElementById('homeJoin').onclick = ()=>{
   if(jb.style.display !== 'none'){ homeNote(''); setTimeout(()=>document.getElementById('joinCode').focus(), 40); }
 };
 document.getElementById('joinGo').onclick = ()=> joinRoom(document.getElementById('joinCode').value);
-document.getElementById('joinCode').oninput = (e)=>{ e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4); };
+document.getElementById('joinCode').oninput = (e)=>{ e.target.value = e.target.value.replace(/[^0-9]/g,'').slice(0,4); };
 document.getElementById('joinCode').onkeydown = (e)=>{ if(e.key==='Enter') joinRoom(e.target.value); };
 document.getElementById('homeLocal').onclick = startLocal;
 document.getElementById('homeBtn').onclick = ()=> showHome();
