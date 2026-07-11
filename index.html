@@ -28,10 +28,10 @@
     --ink:#1b1b1b;
     --muted:#7a7f83;
     --line:#e6e3db;
-    --red:#c62828;        /* الفريق الأول ♥ */
-    --red-soft:#fdeceb;
-    --spade:#242424;      /* الفريق الثاني ♠ */
-    --spade-soft:#ededed;
+    --red:#1565c0;        /* الفريق الأول (أزرق) */
+    --red-soft:#e7f0fb;
+    --spade:#e8730c;      /* الفريق الثاني (برتقالي) */
+    --spade-soft:#fdeee0;
     --gold:#c9a227;
     --ok:#1e9e6a;
     --amber:#e0a11b;
@@ -423,6 +423,7 @@
     <div class="lose" id="loseText"></div>
     <div class="win" id="winText"></div>
     <div class="why" id="whyText"></div>
+    <button id="shareImgBtn" class="btn" style="margin-top:10px;width:100%;background:#25D366;color:#fff;border:none">📸 شارك صورة النتيجة</button>
     <button id="resultOk" class="btn btn-primary" style="display:none;margin-top:10px;width:100%">إنهاء اللعبة والخروج</button>
     <div id="resultWait" style="display:none;margin-top:8px;color:var(--muted);font-size:13px;font-weight:700">بانتظار المضيف لإنهاء اللعبة…</div>
   </div></div>
@@ -1252,11 +1253,107 @@ function homeNote(t){ const el = document.getElementById('homeNote'); if(el) el.
 function shareCode(){
   if(!RM) return;
   const link = location.href.split('#')[0];
-  const msg = 'العب معنا بنت السبيت 🎴\nالرمز: ' + RM.code + '\nافتح: ' + link;
+  const msg =
+    '🎴 تعال العب معنا بنت السبيت!\n\n' +
+    'رمز الغرفة: ' + RM.code + '\n' +
+    'افتح التطبيق ← «الدخول إلى غرفة» ← اكتب الرمز.\n\n' +
+    'ما عندك التطبيق؟ نزّله من:\n' + link;
   if(navigator.share){ navigator.share({ text: msg }).catch(()=>{}); }
   else { copyText(msg); toast('تم نسخ رسالة الدعوة'); }
 }
 function copyCode(){ if(!RM) return; copyText(RM.code); toast('تم نسخ الرمز ' + RM.code); }
+
+/* ============ صورة النتيجة (للمشاركة) ============ */
+function buildResultImage(){
+  const W = 1080, H = 1080;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  // خلفية
+  const g = x.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#12724f'); g.addColorStop(1,'#083b2c');
+  x.fillStyle = g; x.fillRect(0,0,W,H);
+  // إطار ذهبي
+  x.strokeStyle = 'rgba(201,162,39,.55)'; x.lineWidth = 6;
+  x.strokeRect(30,30,W-60,H-60);
+  x.textAlign = 'center';
+  x.direction = 'rtl';
+  // العنوان
+  x.fillStyle = '#c9a227';
+  x.font = "900 78px Cairo, sans-serif";
+  x.fillText('بنت السبيت', W/2, 150);
+  x.fillStyle = 'rgba(255,255,255,.85)';
+  x.font = "700 34px Tajawal, sans-serif";
+  x.fillText('نتيجة اللعبة 🎴', W/2, 205);
+
+  const t = totals();
+  const win = state.result ? state.result.winning : 0;
+  const lose = state.result ? state.result.losing : 1;
+
+  // شعار الفوز/الخسارة
+  x.fillStyle = '#ffdf7e';
+  x.font = "900 46px Cairo, sans-serif";
+  x.fillText('🏆 فاز ' + teamNames(win), W/2, 300);
+  x.fillStyle = 'rgba(255,255,255,.7)';
+  x.font = "700 34px Tajawal, sans-serif";
+  x.fillText('خسر ' + teamNames(lose), W/2, 355);
+
+  // بطاقات اللاعبين
+  const rowY0 = 460, rowH = 120, cardW = 900, cardX = (W-cardW)/2;
+  for(let i=0;i<4;i++){
+    const y = rowY0 + i*rowH;
+    const tm = state.players[i].team;
+    const col = tm === 0 ? '#1565c0' : '#e8730c';
+    // بطاقة
+    x.fillStyle = 'rgba(255,255,255,.96)';
+    roundRect(x, cardX, y, cardW, rowH-18, 18); x.fill();
+    // شريط اللون
+    x.fillStyle = col; roundRect(x, cardX, y, 14, rowH-18, 7); x.fill();
+    // الاسم (يمين)
+    x.fillStyle = '#1b1b1b'; x.textAlign = 'right';
+    x.font = "800 44px Tajawal, sans-serif";
+    x.fillText(state.players[i].name, cardX + cardW - 40, y + 66);
+    // المجموع (يسار)
+    x.fillStyle = col; x.textAlign = 'left';
+    x.font = "900 56px Cairo, sans-serif";
+    x.fillText(String(t[i]), cardX + 45, y + 70);
+  }
+  // التاريخ
+  x.textAlign = 'center';
+  x.fillStyle = 'rgba(255,255,255,.6)';
+  x.font = "500 26px Tajawal, sans-serif";
+  const d = new Date();
+  const ds = d.getFullYear() + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0');
+  x.fillText(ds + ' · ralghamdi.github.io/sbeit', W/2, H-55);
+  return c;
+}
+function roundRect(x, X, Y, w, h, r){
+  x.beginPath();
+  x.moveTo(X+r,Y); x.arcTo(X+w,Y,X+w,Y+h,r); x.arcTo(X+w,Y+h,X,Y+h,r);
+  x.arcTo(X,Y+h,X,Y,r); x.arcTo(X,Y,X+w,Y,r); x.closePath();
+}
+function shareResultImage(){
+  if(!state.result){ toast('الصورة تُشارك بعد انتهاء اللعبة'); return; }
+  let c;
+  try{ c = buildResultImage(); }catch(e){ toast('تعذّر إنشاء الصورة'); return; }
+  c.toBlob(async (blob)=>{
+    if(!blob){ toast('تعذّر إنشاء الصورة'); return; }
+    const file = new File([blob], 'bint-elsbeit.png', { type:'image/png' });
+    try{
+      if(navigator.canShare && navigator.canShare({ files:[file] })){
+        await navigator.share({ files:[file], text:'نتيجة بنت السبيت 🎴' });
+        return;
+      }
+    }catch(e){ if(e && e.name === 'AbortError') return; }
+    // بديل: تنزيل الصورة
+    try{
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'bint-elsbeit.png';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>{ try{ URL.revokeObjectURL(url); }catch(e){} }, 3000);
+      toast('تم حفظ الصورة 📸');
+    }catch(e){ toast('تعذّر حفظ الصورة'); }
+  }, 'image/png');
+}
 function copyText(t){
   try{ navigator.clipboard.writeText(t); }
   catch(e){ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(_){}; ta.remove(); }
@@ -1385,6 +1482,7 @@ document.getElementById('joinCode').onkeydown = (e)=>{ if(e.key==='Enter') joinR
 document.getElementById('homeLocal').onclick = startLocal;
 document.getElementById('homeBtn').onclick = ()=> showHome();
 document.getElementById('speakBtn').onclick = speakTotals;
+document.getElementById('shareImgBtn').onclick = shareResultImage;
 document.getElementById('rbShare').onclick = shareCode;
 document.getElementById('rbCopy').onclick = copyCode;
 document.getElementById('rbExit').onclick = exitRoom;
