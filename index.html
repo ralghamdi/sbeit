@@ -357,6 +357,8 @@
   /* ===== Guest / room view states ===== */
   body.inroom #newBtn{display:none}
   body.inroom #homeBtn{display:none}
+  .spk{display:none}
+  body.inroom:not(.guest) .spk{display:inline-block}
   body.guest .entry-panel{display:none}
   body.guest #undoBtn,body.guest #newBtn{display:none}
   body.guest .pn-edit{display:none}
@@ -395,8 +397,8 @@
     </div>
     <div class="hbtns">
       <button class="icon-btn" id="homeBtn" title="الرئيسية">🏠</button>
+      <button class="icon-btn spk" id="speakBtn" title="اقرأ المجاميع">🔊</button>
       <button class="icon-btn" id="undoBtn" title="تراجع">↩︎</button>
-      <button class="icon-btn" id="infoBtn" title="القيم">؟</button>
       <button class="icon-btn accent" id="newBtn">جديدة</button>
     </div>
   </header>
@@ -512,21 +514,6 @@
 
 <div id="histModalRemoved" hidden></div>
 
-<div id="infoModal" class="modal">
-  <div class="modal-card">
-    <h3>قيم الأوراق</h3>
-    <p class="info-text">
-      كل هاص = <b>1</b><br>
-      بنت السبيت = <b>13</b> (مدبلة <b>26</b>)<br>
-      عشرة الديمن = <b>10</b> (مدبلة <b>20</b>)<br><br>
-      إجماليات الدورة: <b>36 · 46 · 49 · 59</b><br>
-      أول لاعب يوصل <b>152</b> يخسر فريقه.<br>
-      الموزّع عند صاحب أعلى نقاط.
-    </p>
-    <button class="mode-cancel" id="infoCancel">إغلاق</button>
-  </div>
-</div>
-
 <div id="notice"></div>
 
 <script>
@@ -641,6 +628,7 @@ function recordRound(deltas, type, label){
   }
   save();
   render();
+  autoSpeak();
 }
 
 function undo(){
@@ -1274,6 +1262,59 @@ function copyText(t){
   catch(e){ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(_){}; ta.remove(); }
 }
 
+/* ============ الصوت (NourVoice عبر وسيط Supabase) — المضيف في الغرفة فقط ============ */
+const SPEAK_URL = SB_URL + '/functions/v1/speak';
+let _audio = null;
+
+// الصوت فقط للمضيف داخل غرفة (لا محلي، لا ضيف)
+function canSpeak(){ return !!(typeof RM !== 'undefined' && RM && RM.role === 'host'); }
+
+// تحويل رقم إلى كلمات عربية
+function arWords(n){
+  n = parseInt(n, 10);
+  if(isNaN(n)) return '';
+  if(n < 0) return 'ناقص ' + arWords(-n);
+  if(n === 0) return 'صفر';
+  const ones = ['','واحد','اثنان','ثلاثة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة','عشرة','أحد عشر','اثنا عشر','ثلاثة عشر','أربعة عشر','خمسة عشر','ستة عشر','سبعة عشر','ثمانية عشر','تسعة عشر'];
+  const tens = ['','','عشرون','ثلاثون','أربعون','خمسون','ستون','سبعون','ثمانون','تسعون'];
+  const hundreds = ['','مئة','مئتان','ثلاثمئة','أربعمئة','خمسمئة','ستمئة','سبعمئة','ثمانمئة','تسعمئة'];
+  const parts = [];
+  const h = Math.floor(n/100), rem = n%100;
+  if(h > 0) parts.push(hundreds[h]);
+  if(rem > 0){
+    if(rem < 20) parts.push(ones[rem]);
+    else { const u = rem%10, t = Math.floor(rem/10); parts.push(u > 0 ? (ones[u] + ' و' + tens[t]) : tens[t]); }
+  }
+  return parts.join(' و');
+}
+
+// جملة واحدة لكل الدورة (طلب API واحد)
+function totalsSentence(){
+  const t = totals();
+  let s = state.players.map((p,i) => p.name + ' ' + arWords(t[i])).join('، ');
+  return s.replace(/-?\d+/g, m => arWords(m));
+}
+
+async function speakTotals(){
+  if(!canSpeak() || !navigator.onLine) return;
+  const text = totalsSentence();
+  try{
+    const res = await fetch(SPEAK_URL, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    if(!res.ok){ return; }                 // فشل الصوت — نتجاهل بصمت (ما يعطّل اللعب)
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    try{ if(_audio){ _audio.pause(); } }catch(e){}
+    _audio = new Audio(url);
+    _audio.onended = ()=>{ try{ URL.revokeObjectURL(url); }catch(e){} };
+    _audio.play().catch(()=>{});
+  }catch(e){}
+}
+function autoSpeak(){ speakTotals(); }
+
 /* ============ ربط الأزرار ============ */
 document.getElementById('recordBtn').onclick = onRecord;
 document.getElementById('kabootBtn').onclick = showKaboot;
@@ -1312,9 +1353,6 @@ document.getElementById('imInput').onkeydown = (e)=>{ if(e.key==='Enter') docume
 function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 document.getElementById('kbCancel').onclick = ()=> closeModal('kabootModal');
 document.getElementById('kabootModal').onclick = (e)=>{ if(e.target.id==='kabootModal') closeModal('kabootModal'); };
-document.getElementById('infoBtn').onclick = ()=> document.getElementById('infoModal').classList.add('show');
-document.getElementById('infoCancel').onclick = ()=> closeModal('infoModal');
-document.getElementById('infoModal').onclick = (e)=>{ if(e.target.id==='infoModal') closeModal('infoModal'); };
 
 // name picker modal (custom field save + cancel)
 document.getElementById('nmSave').onclick = ()=>{
@@ -1339,6 +1377,7 @@ document.getElementById('joinCode').oninput = (e)=>{ e.target.value = e.target.v
 document.getElementById('joinCode').onkeydown = (e)=>{ if(e.key==='Enter') joinRoom(e.target.value); };
 document.getElementById('homeLocal').onclick = startLocal;
 document.getElementById('homeBtn').onclick = ()=> showHome();
+document.getElementById('speakBtn').onclick = speakTotals;
 document.getElementById('rbShare').onclick = shareCode;
 document.getElementById('rbCopy').onclick = copyCode;
 document.getElementById('rbExit').onclick = exitRoom;
