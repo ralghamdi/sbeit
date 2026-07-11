@@ -1,5 +1,5 @@
 /* Service Worker — يخلي التطبيق يشتغل بدون إنترنت وقابل للتثبيت */
-const CACHE = 'bintelsbeit-v1';
+const CACHE = 'bintelsbeit-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -27,6 +27,9 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
+
+  // لا نعترض طلبات النطق من Google (تشغيل صوتي مباشر)
+  try{ if (new URL(req.url).hostname.indexOf('translate.google') !== -1) return; }catch(_){}
 
   // صفحات التنقّل: نجيب أحدث نسخة أونلاين، ونرجع للكاش لو ما فيه نت
   if (req.mode === 'navigate') {
