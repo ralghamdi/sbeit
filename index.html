@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" translate="no">
 <head>
 <meta charset="UTF-8">
+<meta name="google" content="notranslate">
+<meta http-equiv="Content-Language" content="ar">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -370,7 +372,7 @@
   .v-hint{font-size:12px;color:var(--amber);font-weight:600;margin:-4px 0 12px;min-height:14px}
 </style>
 </head>
-<body>
+<body class="notranslate">
 
 <div id="home" class="home">
   <div class="home-card">
@@ -1416,12 +1418,14 @@ function buildVoiceList(){
     if(hint) hint.textContent = 'المتصفح ما وفّر أصوات — جرّب متصفح آخر أو جهاز آخر.';
     return;
   }
-  sel.innerHTML = ordered.map(v => {
-    const isAr = (v.lang||'').toLowerCase().startsWith('ar');
-    const label = (isAr ? '🟢 عربي · ' : '') + v.name + ' (' + v.lang + ')';
-    return '<option value="'+esc(v.voiceURI)+'"'+(v.voiceURI===chosenVoiceURI?' selected':'')+'>'+esc(label)+'</option>';
-  }).join('');
-  if(!chosenVoiceURI){ const auto = pickVoice(); if(auto) sel.value = auto.voiceURI; }
+  sel.innerHTML =
+    '<option value="__auto__"'+(!chosenVoiceURI?' selected':'')+'>تلقائي (أفضل صوت عربي)</option>' +
+    ordered.map(v => {
+      const isAr = (v.lang||'').toLowerCase().startsWith('ar');
+      const label = (isAr ? '🟢 عربي · ' : '') + v.name + ' (' + v.lang + ')';
+      return '<option value="'+esc(v.voiceURI)+'"'+(v.voiceURI===chosenVoiceURI?' selected':'')+'>'+esc(label)+'</option>';
+    }).join('');
+  if(chosenVoiceURI){ sel.value = chosenVoiceURI; } else { sel.value = '__auto__'; }
   if(hint){
     if(voiceOnline){
       hint.innerHTML = 'مفعّل: صوت عربي عبر الإنترنت (أوضح ويقرأ الأسماء). صوت الجهاز يُستخدم فقط لو انقطع النت.';
@@ -1515,7 +1519,7 @@ document.getElementById('speakBtn').onclick = speakTotals;
 document.getElementById('voiceBtn').onclick = openVoiceModal;
 document.getElementById('vAuto').onchange = (e)=>{ voiceOn = e.target.checked; saveVoicePrefs(); };
 document.getElementById('vOnline').onchange = (e)=>{ voiceOnline = e.target.checked; saveVoicePrefs(); buildVoiceList(); };
-document.getElementById('vSelect').onchange = (e)=>{ chosenVoiceURI = e.target.value; saveVoicePrefs(); };
+document.getElementById('vSelect').onchange = (e)=>{ chosenVoiceURI = (e.target.value === '__auto__') ? null : e.target.value; saveVoicePrefs(); };
 document.getElementById('vTest').onclick = speakTotals;
 document.getElementById('vClose').onclick = ()=> closeModal('voiceModal');
 document.getElementById('voiceModal').onclick = (e)=>{ if(e.target.id==='voiceModal') closeModal('voiceModal'); };
