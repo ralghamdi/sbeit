@@ -356,6 +356,7 @@
 
   /* ===== Guest / room view states ===== */
   body.inroom #newBtn{display:none}
+  body.inroom #homeBtn{display:none}
   body.guest .entry-panel{display:none}
   body.guest #undoBtn,body.guest #newBtn{display:none}
   body.guest .pn-edit{display:none}
@@ -393,6 +394,7 @@
       </div>
     </div>
     <div class="hbtns">
+      <button class="icon-btn" id="homeBtn" title="الرئيسية">🏠</button>
       <button class="icon-btn" id="undoBtn" title="تراجع">↩︎</button>
       <button class="icon-btn" id="infoBtn" title="القيم">؟</button>
       <button class="icon-btn accent" id="newBtn">جديدة</button>
@@ -1336,6 +1338,7 @@ document.getElementById('joinGo').onclick = ()=> joinRoom(document.getElementByI
 document.getElementById('joinCode').oninput = (e)=>{ e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4); };
 document.getElementById('joinCode').onkeydown = (e)=>{ if(e.key==='Enter') joinRoom(e.target.value); };
 document.getElementById('homeLocal').onclick = startLocal;
+document.getElementById('homeBtn').onclick = ()=> showHome();
 document.getElementById('rbShare').onclick = shareCode;
 document.getElementById('rbCopy').onclick = copyCode;
 document.getElementById('rbExit').onclick = exitRoom;
