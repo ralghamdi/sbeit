@@ -356,10 +356,18 @@
   body.inroom #newBtn{display:none}
   body.guest .entry-panel{display:none}
   body.guest #undoBtn,body.guest #newBtn{display:none}
+  body.guest .spk{display:none}
   body.guest .pn-edit{display:none}
   body.guest .pcard .pname{cursor:default;background:transparent;border-color:transparent;padding:2px 4px}
   body.guest .dealer-line{cursor:default}
   body.guest .dealer-line .dl-hint{display:none}
+
+  /* ===== Voice modal ===== */
+  .v-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;
+         font-family:'Tajawal';font-weight:700;font-size:15px;color:var(--ink)}
+  .v-switch{width:22px;height:22px;accent-color:var(--felt);cursor:pointer}
+  .v-lbl{font-family:'Tajawal';font-weight:700;font-size:13px;color:var(--muted);margin-bottom:6px}
+  .v-hint{font-size:12px;color:var(--amber);font-weight:600;margin:-4px 0 12px;min-height:14px}
 </style>
 </head>
 <body>
@@ -392,6 +400,8 @@
     </div>
     <div class="hbtns">
       <button class="icon-btn" id="undoBtn" title="تراجع">↩︎</button>
+      <button class="icon-btn spk" id="speakBtn" title="اقرأ المجاميع">🔊</button>
+      <button class="icon-btn spk" id="voiceBtn" title="إعدادات الصوت">⚙︎</button>
       <button class="icon-btn" id="infoBtn" title="القيم">؟</button>
       <button class="icon-btn accent" id="newBtn">جديدة</button>
     </div>
@@ -523,6 +533,21 @@
   </div>
 </div>
 
+<div id="voiceModal" class="modal">
+  <div class="modal-card">
+    <h3>الصوت 🔊</h3>
+    <label class="v-row"><span>النطق التلقائي بعد كل دورة</span>
+      <input type="checkbox" id="vAuto" class="v-switch"></label>
+    <label class="v-row"><span>صوت عربي عبر الإنترنت (أوضح، يحتاج نت)</span>
+      <input type="checkbox" id="vOnline" class="v-switch"></label>
+    <div class="v-lbl">صوت الجهاز (احتياطي / بدون نت)</div>
+    <select id="vSelect" class="nm-field"></select>
+    <div class="v-hint" id="vHint"></div>
+    <button class="mode-opt" id="vTest"><span class="mo-title">تجربة 🔊</span></button>
+    <button class="mode-cancel" id="vClose">إغلاق</button>
+  </div>
+</div>
+
 <div id="notice"></div>
 
 <script>
@@ -637,6 +662,7 @@ function recordRound(deltas, type, label){
   }
   save();
   render();
+  autoSpeak();
 }
 
 function undo(){
@@ -1270,6 +1296,150 @@ function copyText(t){
   catch(e){ const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy');}catch(_){}; ta.remove(); }
 }
 
+/* ============ الصوت (نطق المجاميع) ============ */
+const synth = window.speechSynthesis || null;
+let voiceOn = true;
+let voiceOnline = true;
+let chosenVoiceURI = null;
+
+function loadVoicePrefs(){
+  try{ voiceOn = localStorage.getItem('sbeit_voice_on') !== '0'; }catch(e){}
+  try{ voiceOnline = localStorage.getItem('sbeit_voice_online') !== '0'; }catch(e){}
+  try{ chosenVoiceURI = localStorage.getItem('sbeit_voice_uri') || null; }catch(e){}
+}
+function saveVoicePrefs(){
+  try{ localStorage.setItem('sbeit_voice_on', voiceOn ? '1' : '0');
+       localStorage.setItem('sbeit_voice_online', voiceOnline ? '1' : '0');
+       localStorage.setItem('sbeit_voice_uri', chosenVoiceURI || ''); }catch(e){}
+}
+function allVoices(){ try{ return synth ? (synth.getVoices() || []) : []; }catch(e){ return []; } }
+function pickVoice(){
+  const all = allVoices();
+  if(chosenVoiceURI){ const v = all.find(v => v.voiceURI === chosenVoiceURI); if(v) return v; }
+  const ar = all.filter(v => (v.lang||'').toLowerCase().startsWith('ar'));
+  const fem = ['female','laila','layla','hala','salma','amira','zariyah','hoda','maryam','sara','sarah','nora','noura','fatima','asma','reem','lana'];
+  const f = ar.find(v => fem.some(h => (v.name||'').toLowerCase().includes(h)));
+  return f || ar[0] || null;
+}
+function canSpeak(){ return (typeof RM === 'undefined' || !RM || RM.role !== 'guest'); } // المضيف أو المحلي فقط
+
+// تحويل رقم إلى كلمات عربية (يمنع نطق الأرقام بالإنجليزي)
+function arWords(n){
+  n = parseInt(n, 10);
+  if(isNaN(n)) return '';
+  if(n < 0) return 'ناقص ' + arWords(-n);
+  if(n === 0) return 'صفر';
+  const ones = ['','واحد','اثنان','ثلاثة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة','عشرة','أحد عشر','اثنا عشر','ثلاثة عشر','أربعة عشر','خمسة عشر','ستة عشر','سبعة عشر','ثمانية عشر','تسعة عشر'];
+  const tens = ['','','عشرون','ثلاثون','أربعون','خمسون','ستون','سبعون','ثمانون','تسعون'];
+  const hundreds = ['','مئة','مئتان','ثلاثمئة','أربعمئة','خمسمئة','ستمئة','سبعمئة','ثمانمئة','تسعمئة'];
+  const parts = [];
+  const h = Math.floor(n/100), rem = n%100;
+  if(h > 0) parts.push(hundreds[h]);
+  if(rem > 0){
+    if(rem < 20) parts.push(ones[rem]);
+    else { const u = rem%10, t = Math.floor(rem/10); parts.push(u > 0 ? (ones[u] + ' و' + tens[t]) : tens[t]); }
+  }
+  return parts.join(' و');
+}
+
+// نطق عربي عبر الإنترنت (Google TTS) — يقرأ الأسماء والأرقام بالعربي
+let _ttsAudio = null;
+function ttsUrl(text){
+  return 'https://translate.google.com/translate_tts?ie=UTF-8&tl=ar&client=tw-ob&q=' + encodeURIComponent(text);
+}
+function speakOnline(chunks, onFail){
+  let i = 0, failed = false;
+  const playNext = ()=>{
+    if(i >= chunks.length) return;
+    let a;
+    try{ a = new Audio(ttsUrl(chunks[i])); }catch(e){ if(!failed && onFail){ failed=true; onFail(); } return; }
+    _ttsAudio = a;
+    a.onended = ()=>{ i++; playNext(); };
+    a.onerror = ()=>{ if(i===0 && !failed && onFail){ failed=true; onFail(); } };
+    const pr = a.play();
+    if(pr && pr.catch) pr.catch(()=>{ if(i===0 && !failed && onFail){ failed=true; onFail(); } });
+  };
+  playNext();
+}
+function stopSpeaking(){
+  try{ if(_ttsAudio){ _ttsAudio.pause(); _ttsAudio = null; } }catch(e){}
+  try{ if(synth) synth.cancel(); }catch(e){}
+}
+
+function speakTotals(){
+  if(!canSpeak()) return;
+  const t = totals();
+  if(voiceOnline && navigator.onLine){
+    stopSpeaking();
+    const chunks = state.players.map((p,i) => (p.name + ' ' + t[i]).replace(/\s+/g,' ').trim());
+    speakOnline(chunks, speakDevice);   // احتياطي: صوت الجهاز لو فشل الأونلاين
+  } else {
+    speakDevice();
+  }
+}
+
+// نطق عبر صوت الجهاز (احتياطي / بدون نت)
+function speakDevice(){
+  if(!synth) return;
+  const t = totals();
+  const v = pickVoice();
+  const isAr = v && (v.lang||'').toLowerCase().startsWith('ar');
+  const items = state.players.map((p,i) => {
+    if(isAr){ let s = p.name + '، ' + arWords(t[i]); return s.replace(/-?\d+/g, m => arWords(m)) + '.'; }
+    return p.name + ', ' + t[i] + '.';
+  });
+  try{
+    if(synth.speaking || synth.pending) synth.cancel();
+    setTimeout(() => {
+      items.forEach(s => {
+        const u = new SpeechSynthesisUtterance(s);
+        if(v){ u.voice = v; u.lang = v.lang; } else { u.lang = 'ar-SA'; }
+        u.rate = 0.9; u.pitch = 1.05;
+        synth.speak(u);
+      });
+      try{ synth.resume(); }catch(e){}
+    }, 90);
+  }catch(e){}
+}
+function autoSpeak(){ if(voiceOn) speakTotals(); }
+
+/* قائمة الأصوات في النافذة */
+function buildVoiceList(){
+  const sel = document.getElementById('vSelect'); if(!sel) return;
+  const all = allVoices();
+  const ar = all.filter(v => (v.lang||'').toLowerCase().startsWith('ar'));
+  const other = all.filter(v => !(v.lang||'').toLowerCase().startsWith('ar'));
+  const ordered = ar.concat(other);
+  const hint = document.getElementById('vHint');
+  if(ordered.length === 0){
+    sel.innerHTML = '<option>لا توجد أصوات على هذا الجهاز</option>';
+    if(hint) hint.textContent = 'المتصفح ما وفّر أصوات — جرّب متصفح آخر أو جهاز آخر.';
+    return;
+  }
+  sel.innerHTML = ordered.map(v => {
+    const isAr = (v.lang||'').toLowerCase().startsWith('ar');
+    const label = (isAr ? '🟢 عربي · ' : '') + v.name + ' (' + v.lang + ')';
+    return '<option value="'+esc(v.voiceURI)+'"'+(v.voiceURI===chosenVoiceURI?' selected':'')+'>'+esc(label)+'</option>';
+  }).join('');
+  if(!chosenVoiceURI){ const auto = pickVoice(); if(auto) sel.value = auto.voiceURI; }
+  if(hint){
+    if(voiceOnline){
+      hint.innerHTML = 'مفعّل: صوت عربي عبر الإنترنت (أوضح ويقرأ الأسماء). صوت الجهاز يُستخدم فقط لو انقطع النت.';
+    } else if(ar.length){
+      hint.innerHTML = '';
+    } else {
+      hint.innerHTML = 'ما فيه صوت عربي على جوالك. إمّا تفعّل «صوت عربي عبر الإنترنت» فوق، أو تثبّت صوت عربي: إعدادات الجوال ← تحويل النص إلى كلام ← Google ← تثبيت «العربية».';
+    }
+  }
+}
+function openVoiceModal(){
+  document.getElementById('vAuto').checked = voiceOn;
+  document.getElementById('vOnline').checked = voiceOnline;
+  buildVoiceList();
+  document.getElementById('voiceModal').classList.add('show');
+  setTimeout(buildVoiceList, 400);   // بعض الأجهزة تحمّل الأصوات متأخر
+}
+
 /* ============ ربط الأزرار ============ */
 document.getElementById('recordBtn').onclick = onRecord;
 document.getElementById('kabootBtn').onclick = showKaboot;
@@ -1339,6 +1509,18 @@ document.getElementById('rbCopy').onclick = copyCode;
 document.getElementById('rbExit').onclick = exitRoom;
 document.getElementById('resultOk').onclick = endRoomFinal;
 window.addEventListener('online', ()=>{ if(RM && RM.role==='host'){ pushState(); } });
+
+// ===== voice controls =====
+document.getElementById('speakBtn').onclick = speakTotals;
+document.getElementById('voiceBtn').onclick = openVoiceModal;
+document.getElementById('vAuto').onchange = (e)=>{ voiceOn = e.target.checked; saveVoicePrefs(); };
+document.getElementById('vOnline').onchange = (e)=>{ voiceOnline = e.target.checked; saveVoicePrefs(); buildVoiceList(); };
+document.getElementById('vSelect').onchange = (e)=>{ chosenVoiceURI = e.target.value; saveVoicePrefs(); };
+document.getElementById('vTest').onclick = speakTotals;
+document.getElementById('vClose').onclick = ()=> closeModal('voiceModal');
+document.getElementById('voiceModal').onclick = (e)=>{ if(e.target.id==='voiceModal') closeModal('voiceModal'); };
+if(synth){ try{ synth.onvoiceschanged = buildVoiceList; }catch(e){} }
+loadVoicePrefs();
 
 /* ============ تشغيل ============ */
 buildEntry();
