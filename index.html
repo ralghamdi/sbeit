@@ -336,6 +336,45 @@
   .join-input::placeholder{color:rgba(255,255,255,.5);font-size:14px;letter-spacing:normal;font-weight:500}
   .home-note{margin-top:12px;font-size:13px;color:#ffe08a;font-weight:700;min-height:18px}
 
+  /* ===== Open rooms list (home) ===== */
+  .rooms-head{
+    display:flex;align-items:center;justify-content:space-between;margin:2px 2px 8px;
+    font-family:'Cairo';font-weight:800;font-size:14px;color:rgba(255,255,255,.9);
+  }
+  .rooms-refresh{
+    background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;
+    padding:4px 9px;font-family:'Tajawal';font-weight:700;font-size:12px;cursor:pointer;
+  }
+  .rooms-box{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;max-height:46vh;overflow-y:auto}
+  .rooms-empty{
+    color:rgba(255,255,255,.65);font-size:13px;font-weight:600;text-align:center;
+    padding:14px;border:1px dashed rgba(255,255,255,.25);border-radius:12px;
+  }
+  .room-card{
+    width:100%;text-align:right;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);
+    border-radius:13px;padding:10px 12px;cursor:pointer;color:#fff;transition:.12s;
+  }
+  .room-card:active{transform:scale(.99);background:rgba(255,255,255,.18)}
+  .rc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+  .rc-live{font-size:11px;font-weight:800}
+  .rc-live.on{color:#8ff0c0}
+  .rc-live.off{color:#ffb3b3}
+  .rc-code{font-family:'Cairo';font-weight:900;font-size:15px;color:var(--gold);letter-spacing:1px}
+  .rc-players{display:grid;grid-template-columns:1fr 1fr;gap:4px 8px}
+  .rc-p{
+    font-family:'Tajawal';font-weight:700;font-size:12.5px;color:#fff;display:flex;justify-content:space-between;
+    gap:6px;background:rgba(0,0,0,.16);border-radius:7px;padding:3px 7px;border-inline-start:3px solid transparent;
+    white-space:nowrap;overflow:hidden;
+  }
+  .rc-p span{overflow:hidden;text-overflow:ellipsis}
+  .rc-p.t0{border-inline-start-color:#5b9df0}
+  .rc-p.t1{border-inline-start-color:#f0a45b}
+  .rc-p b{color:#ffe08a;font-weight:900}
+  .rooms-more{
+    width:100%;background:transparent;border:1px dashed rgba(255,255,255,.35);color:#fff;border-radius:11px;
+    padding:9px;font-family:'Tajawal';font-weight:700;font-size:13px;cursor:pointer;
+  }
+
   /* ===== Room bar ===== */
   .room-bar{
     display:none;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;
@@ -374,8 +413,15 @@
     <div class="home-logo">♠️♥️</div>
     <h1 class="home-title">بنت السبيت</h1>
     <p class="home-sub">حاسبة نقاط — العبوا سوا والنتيجة مباشرة</p>
+
+    <div class="rooms-head">
+      <span>الغرف المفتوحة</span>
+      <button class="rooms-refresh" id="roomsRefresh">تحديث ↻</button>
+    </div>
+    <div id="roomsBox" class="rooms-box"></div>
+
     <button class="home-btn primary" id="homeCreate">➕ إنشاء غرفة</button>
-    <button class="home-btn" id="homeJoin">🔑 الدخول إلى غرفة</button>
+    <button class="home-btn" id="homeJoin">🔑 الدخول برمز</button>
     <div id="joinBox" class="join-box" style="display:none">
       <input id="joinCode" class="join-input" maxlength="4" placeholder="اكتب الرمز (4 أرقام)" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
       <button class="home-btn primary" id="joinGo">دخول</button>
@@ -525,7 +571,7 @@ const THRESHOLD = 152;
 const VALID_TOTALS = [36, 46, 49, 59];
 const SUITS = ['♥', '♠'];              // فريق 1 / فريق 2
 const KEY = 'bintelsbeit_state_v2';
-const NAME_LIST = ['عبدالله','أبو أحمد','العسكر','القعود','أبو سالم','فهد','أبو غلا','رائد','يوسف','حسام','أبو فيصل','معتز','أبو نورة','أبو جود','أبو منيرة','الزوم'];
+const NAME_LIST = ['عبدالله','أبو أحمد','أبو فهد','أبو عبدالله','أبو سالم','فهد','أبو غلا','أبو ميلا','يوسف','حسام','أبو فيصل','أبو طلال','أبو نورة','أبو جود','أبو منيرة','الزوم'];
 
 /* ============ التخزين (آمن، ما يوقف لو تعطّل) ============ */
 function save(){
@@ -1246,6 +1292,7 @@ function showHome(note){
   document.getElementById('home').classList.add('show');
   document.getElementById('joinBox').style.display = 'none';
   homeNote(note || '');
+  loadRooms();
 }
 function homeNote(t){ const el = document.getElementById('homeNote'); if(el) el.textContent = t || ''; }
 
@@ -1369,6 +1416,7 @@ function canSpeak(){ return !!(typeof RM !== 'undefined' && RM && RM.role === 'h
 function playUrl(url){
   try{ if(_audio){ _audio.pause(); } }catch(e){}
   _audio = new Audio(url);
+  try{ _audio.playbackRate = 1.25; }catch(e){}   // قراءة أسرع
   _audio.play().catch(()=>{});
 }
 
@@ -1418,6 +1466,55 @@ async function speakTotals(){
   }catch(e){}
 }
 function autoSpeak(){ speakTotals(); }
+
+/* ============ الغرف المفتوحة (الصفحة الرئيسية) ============ */
+let _allRooms = [], _roomsExpanded = false;
+
+function roomTotals(st){
+  const start = (st && st.start) || 0;
+  const out = [start, start, start, start];
+  ((st && st.history) || []).forEach(r => { for(let i=0;i<4;i++) out[i] += (r.deltas && r.deltas[i]) || 0; });
+  return out;
+}
+async function loadRooms(){
+  const box = document.getElementById('roomsBox'); if(!box) return;
+  const c = sbClient();
+  if(!c || !navigator.onLine){ box.innerHTML = '<div class="rooms-empty">ما فيه اتصال — الغرف تظهر لما يرجع النت</div>'; return; }
+  box.innerHTML = '<div class="rooms-empty">جاري تحميل الغرف…</div>';
+  try{
+    const { data, error } = await c.from('sbeit_rooms')
+      .select('code,state,host_last_seen,updated_at')
+      .order('updated_at', { ascending:false }).limit(24);
+    if(error){ box.innerHTML = '<div class="rooms-empty">تعذّر تحميل الغرف</div>'; return; }
+    _allRooms = (data || []).filter(r => r && r.state && !r.state.__ended);
+    _roomsExpanded = false;
+    renderRooms();
+  }catch(e){ box.innerHTML = '<div class="rooms-empty">تعذّر تحميل الغرف</div>'; }
+}
+function renderRooms(){
+  const box = document.getElementById('roomsBox'); if(!box) return;
+  if(_allRooms.length === 0){ box.innerHTML = '<div class="rooms-empty">ما فيه غرف مفتوحة الحين</div>'; return; }
+  const list = _roomsExpanded ? _allRooms : _allRooms.slice(0, 4);
+  box.innerHTML = list.map(r => {
+    const st = r.state || {};
+    const t = roomTotals(st);
+    const live = (Date.now() - new Date(r.host_last_seen || 0).getTime()) < 45000;
+    const players = (st.players || []).map((p,i) =>
+      '<span class="rc-p t'+(p.team||0)+'"><span>'+esc(p.name)+'</span><b>'+t[i]+'</b></span>').join('');
+    return '<button class="room-card" data-code="'+esc(r.code)+'">' +
+      '<div class="rc-top">' +
+        '<span class="rc-live '+(live?'on':'off')+'">'+(live?'🟢 مباشر':'🔴 المضيف غير متصل')+'</span>' +
+        '<span class="rc-code">'+esc(r.code)+'</span>' +
+      '</div>' +
+      '<div class="rc-players">'+players+'</div>' +
+    '</button>';
+  }).join('') +
+  (!_roomsExpanded && _allRooms.length > 4
+    ? '<button class="rooms-more" id="roomsMore">عرض المزيد ('+(_allRooms.length-4)+')</button>' : '');
+  box.querySelectorAll('[data-code]').forEach(btn => { btn.onclick = ()=> joinRoom(btn.dataset.code); });
+  const more = document.getElementById('roomsMore');
+  if(more) more.onclick = ()=>{ _roomsExpanded = true; renderRooms(); };
+}
 
 /* ============ ربط الأزرار ============ */
 document.getElementById('recordBtn').onclick = onRecord;
@@ -1480,6 +1577,7 @@ document.getElementById('joinGo').onclick = ()=> joinRoom(document.getElementByI
 document.getElementById('joinCode').oninput = (e)=>{ e.target.value = e.target.value.replace(/[^0-9]/g,'').slice(0,4); };
 document.getElementById('joinCode').onkeydown = (e)=>{ if(e.key==='Enter') joinRoom(e.target.value); };
 document.getElementById('homeLocal').onclick = startLocal;
+document.getElementById('roomsRefresh').onclick = loadRooms;
 document.getElementById('homeBtn').onclick = ()=> showHome();
 document.getElementById('speakBtn').onclick = speakTotals;
 document.getElementById('shareImgBtn').onclick = shareResultImage;
