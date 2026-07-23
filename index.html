@@ -345,7 +345,12 @@
     background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;
     padding:4px 9px;font-family:'Tajawal';font-weight:700;font-size:12px;cursor:pointer;
   }
-  .rooms-box{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;max-height:46vh;overflow-y:auto}
+  .rooms-box{
+    display:flex;flex-direction:column;gap:8px;margin-bottom:14px;
+    max-height:198px;overflow-y:auto;overscroll-behavior:contain;
+    scrollbar-width:none;-ms-overflow-style:none;
+  }
+  .rooms-box::-webkit-scrollbar{width:0;height:0;display:none}
   .rooms-empty{
     color:rgba(255,255,255,.65);font-size:13px;font-weight:600;text-align:center;
     padding:14px;border:1px dashed rgba(255,255,255,.25);border-radius:12px;
@@ -1505,7 +1510,7 @@ async function loadRooms(){
 function renderRooms(){
   const box = document.getElementById('roomsBox'); if(!box) return;
   if(_allRooms.length === 0){ box.innerHTML = '<div class="rooms-empty">ما فيه غرف مفتوحة الحين</div>'; return; }
-  const list = _roomsExpanded ? _allRooms : _allRooms.slice(0, 4);
+  const list = _roomsExpanded ? _allRooms : _allRooms.slice(0, 5);
   box.innerHTML = list.map(r => {
     const st = r.state || {};
     const t = roomTotals(st);
@@ -1520,8 +1525,8 @@ function renderRooms(){
       '<div class="rc-players">'+players+'</div>' +
     '</button>';
   }).join('') +
-  (!_roomsExpanded && _allRooms.length > 4
-    ? '<button class="rooms-more" id="roomsMore">عرض المزيد ('+(_allRooms.length-4)+')</button>' : '');
+  (!_roomsExpanded && _allRooms.length > 5
+    ? '<button class="rooms-more" id="roomsMore">عرض المزيد ('+(_allRooms.length-5)+')</button>' : '');
   box.querySelectorAll('[data-code]').forEach(btn => { btn.onclick = ()=> joinRoom(btn.dataset.code); });
   const more = document.getElementById('roomsMore');
   if(more) more.onclick = ()=>{ _roomsExpanded = true; renderRooms(); };
