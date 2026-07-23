@@ -571,7 +571,7 @@ const THRESHOLD = 152;
 const VALID_TOTALS = [36, 46, 49, 59];
 const SUITS = ['♥', '♠'];              // فريق 1 / فريق 2
 const KEY = 'bintelsbeit_state_v2';
-const NAME_LIST = ['عبدالله','أبو أحمد','أبو فهد','أبو عبدالله','أبو سالم','فهد','أبو غلا','أبو ميلا','يوسف','حسام','أبو فيصل','أبو طلال','أبو نورة','أبو جود','أبو منيرة','الزوم'];
+const NAME_LIST = ['عبدالله','أبو أحمد','أبو فهد','أبو عبدالله','أبو سالم','فهد','أبو غلا','رائد','يوسف','حسام','أبو فيصل','أبو طلال','أبو نورة','أبو جود','أبو منيرة','الزوم'];
 
 /* ============ التخزين (آمن، ما يوقف لو تعطّل) ============ */
 function save(){
@@ -1484,9 +1484,20 @@ async function loadRooms(){
   try{
     const { data, error } = await c.from('sbeit_rooms')
       .select('code,state,host_last_seen,updated_at')
-      .order('updated_at', { ascending:false }).limit(24);
+      .order('updated_at', { ascending:false }).limit(40);
     if(error){ box.innerHTML = '<div class="rooms-empty">تعذّر تحميل الغرف</div>'; return; }
-    _allRooms = (data || []).filter(r => r && r.state && !r.state.__ended);
+    const now = Date.now();
+    const HIDE_MS = 30*60*1000;        // مضيفها غايب أكثر من 30 دقيقة → غرفة ميتة، نخفيها
+    const DEAD_MS = 4*60*60*1000;      // خاملة أكثر من 4 ساعات → نحذفها
+    const rows = data || [];
+    // حذف الغرف الخاملة (تنظيف تلقائي من أي جهاز يفتح الرئيسية)
+    const dead = rows.filter(r => (now - new Date(r.updated_at || 0).getTime()) > DEAD_MS).map(r => r.code);
+    if(dead.length){ try{ c.from('sbeit_rooms').delete().in('code', dead).then(()=>{}, ()=>{}); }catch(e){} }
+    _allRooms = rows.filter(r =>
+      r && r.state && !r.state.__ended &&
+      dead.indexOf(r.code) === -1 &&
+      (now - new Date(r.host_last_seen || 0).getTime()) < HIDE_MS
+    );
     _roomsExpanded = false;
     renderRooms();
   }catch(e){ box.innerHTML = '<div class="rooms-empty">تعذّر تحميل الغرف</div>'; }
